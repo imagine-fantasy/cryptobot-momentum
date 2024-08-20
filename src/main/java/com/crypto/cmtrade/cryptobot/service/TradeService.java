@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class TradeService {
 
+
+
     @Scheduled(fixedDelay = 10000)
     public void executeTrade(){
         log.info("starting");
