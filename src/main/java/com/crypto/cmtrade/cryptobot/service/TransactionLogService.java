@@ -15,15 +15,15 @@ public class TransactionLogService {
     @Autowired
     private TransactionLogRepository transactionLogRepository;
 
-    public List<TransactionLog> getAllBatchTransactions() {
+    public List<TransactionLog> getAllTransactionLogs() {
         return transactionLogRepository.findAll();
     }
 
-    public TransactionLog getBatchTransactionById(Long id) {
+    public TransactionLog getTransactionLogById(Long id) {
         return transactionLogRepository.findById(id).orElse(null);
     }
 
-    public TransactionLog saveBatchTransaction(TransactionLog transactionLog) {
+    public TransactionLog saveTransactionLog(TransactionLog transactionLog) {
         return transactionLogRepository.save(transactionLog);
     }
 
