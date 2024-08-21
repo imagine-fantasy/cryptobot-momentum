@@ -15,19 +15,19 @@ public class CryptoPortfolioService {
     @Autowired
     private CryptoPortfolioRepository cryptoPortfolioRepository;
 
-    public List<CryptoPortfolio> getAllBatchTransactions() {
+    public List<CryptoPortfolio> getAllCryptoPortfolios() {
         return cryptoPortfolioRepository.findAll();
     }
 
-    public CryptoPortfolio getBatchTransactionById(Long id) {
+    public CryptoPortfolio getCryptoPortfolioById(Long id) {
         return cryptoPortfolioRepository.findById(id).orElse(null);
     }
 
-    public CryptoPortfolio saveBatchTransaction(CryptoPortfolio cryptoPortfolio) {
+    public CryptoPortfolio saveCryptoPortfolio(CryptoPortfolio cryptoPortfolio) {
         return cryptoPortfolioRepository.save(cryptoPortfolio);
     }
 
-    public void deleteBatchTransaction(Long id) {
+    public void deleteCryptoPortfolio(Long id) {
         cryptoPortfolioRepository.deleteById(id);
     }
 }
