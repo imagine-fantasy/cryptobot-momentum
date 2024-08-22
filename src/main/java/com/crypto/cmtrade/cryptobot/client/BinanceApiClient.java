@@ -1,6 +1,8 @@
 package com.crypto.cmtrade.cryptobot.client;
 
 import com.crypto.cmtrade.cryptobot.model.CryptoData;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -55,6 +57,7 @@ public class BinanceApiClient {
             // Cache expired, fetch new server time
             String timeEndpoint = baseUrl + "/v3/time";
             ServerTimeResponse response = restTemplate.getForObject(timeEndpoint, ServerTimeResponse.class);
+            assert response != null;
             cachedServerTime = response.getServerTime();
             lastFetchTime = currentTime;
         }
@@ -144,6 +147,7 @@ public class BinanceApiClient {
 
         List<Map<String, Object>> allTickers = response.getBody();
 
+        assert allTickers != null;
         return allTickers.stream()
                 .filter(ticker -> ((String) ticker.get("symbol")).endsWith("USDT")) // Filter for USDT pairs
                 .sorted((a, b) -> Double.compare(
@@ -166,15 +170,10 @@ public class BinanceApiClient {
 
     // Add other methods for placing orders, etc.
 
+    @Setter
+    @Getter
     private static class ServerTimeResponse {
         private long serverTime;
 
-        public long getServerTime() {
-            return serverTime;
-        }
-
-        public void setServerTime(long serverTime) {
-            this.serverTime = serverTime;
-        }
     }
 }
