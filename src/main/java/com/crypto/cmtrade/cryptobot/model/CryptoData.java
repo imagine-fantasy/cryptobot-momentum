@@ -29,7 +29,11 @@ public class CryptoData {
     private Integer rank;
 
 
-    public CryptoData(String symbol, String symbol1, double lastPrice, double priceChangePercent) {
+    public CryptoData(String cryptoCurrency, String symbol, BigDecimal balance, BigDecimal marketCap) {
+        this.cryptoCurrency = cryptoCurrency;
+        this.symbol = symbol;
+        this.balance = balance;
+        this.marketCap = marketCap;
     }
 }
 

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.math.BigDecimal;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -149,7 +150,11 @@ public class BinanceApiClient {
 
         assert allTickers != null;
         return allTickers.stream()
-                .filter(ticker -> ((String) ticker.get("symbol")).endsWith("USDT")) // Filter for USDT pairs
+                .filter(ticker -> {
+                  log.info("Filter about to be applied to symbol"+ ((String) ticker.get("symbol"))+((String) ticker.get("symbol")).endsWith("USDT"));
+                    return   ((String) ticker.get("symbol")).endsWith("USDT");
+
+                } ) // Filter for USDT pairs
                 .sorted((a, b) -> Double.compare(
                         Double.parseDouble((String) b.get("priceChangePercent")),
                         Double.parseDouble((String) a.get("priceChangePercent"))
@@ -163,8 +168,8 @@ public class BinanceApiClient {
         return new CryptoData(
                 (String) ticker.get("symbol"),
                 (String) ((String) ticker.get("symbol")).replace("USDT", ""), // Remove USDT from symbol for base asset
-                Double.parseDouble((String) ticker.get("lastPrice")),
-                Double.parseDouble((String) ticker.get("priceChangePercent"))
+                new BigDecimal((String) ticker.get("lastPrice")),
+                new BigDecimal((String) ticker.get("priceChangePercent"))
         );
     }
 
