@@ -5,6 +5,8 @@ import com.crypto.cmtrade.cryptobot.model.CryptoPortfolio;
 import com.crypto.cmtrade.cryptobot.repository.BatchTransactionRepository;
 import com.crypto.cmtrade.cryptobot.repository.CryptoPortfolioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -39,5 +41,10 @@ public class CryptoPortfolioService {
     public boolean isPortfolioEmpty(){
         return getAllCryptoPortfolios().isEmpty();
     }
+
+   public List<CryptoPortfolio> findAllBySymbolNotIn( List<String> symbols){
+            return  cryptoPortfolioRepository.findAllBySymbolNotIn(symbols);
+    }
+
 
 }

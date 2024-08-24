@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,5 +39,7 @@ public interface CryptoPortfolioRepository extends JpaRepository<CryptoPortfolio
 
 
 
+    @Query("SELECT cp FROM CryptoPortfolio cp WHERE cp.symbol NOT IN :symbols")
+    List<CryptoPortfolio> findAllBySymbolNotIn(@Param("symbols") List<String> symbols);
 
 }

@@ -3,13 +3,17 @@ package com.crypto.cmtrade.cryptobot.service;
 import com.crypto.cmtrade.cryptobot.model.BatchTransaction;
 import com.crypto.cmtrade.cryptobot.model.CryptoData;
 import com.crypto.cmtrade.cryptobot.util.OrderSide;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
+@Service
 public class PortfolioInitializationService  {
 
 
@@ -27,9 +31,10 @@ public class PortfolioInitializationService  {
 
 
 
-    public void initializePortfolioIfNeeded() {
+    public boolean initializePortfolioIfNeeded() {
 
         if(cryptoPortfolioService.isPortfolioEmpty()){
+            log.info("Portfolio is empty, First Purchase will be executed");
             BigDecimal balance = tradeServices.getAccountBalance();
             BatchTransaction transaction = new BatchTransaction();
             transaction.setStartBalance(balance);
@@ -44,10 +49,10 @@ public class PortfolioInitializationService  {
             savedTransaction.setEndBalance(endBalance);
             savedTransaction.setEndTimestamp(LocalDateTime.now());
             service.saveBatchTransaction(savedTransaction);
-
-
-
+            log.info("Portfolio purchase is completed successfully");
+            return true;
         }
+        return  false;
 
     }
 
