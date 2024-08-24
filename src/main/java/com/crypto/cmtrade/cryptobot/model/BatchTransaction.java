@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 
 @Data
@@ -24,6 +25,6 @@ public class BatchTransaction {
     private BigInteger batchId;
     private BigDecimal startBalance;
     private BigDecimal endBalance;
-    private Timestamp startTimestamp;
-    private Timestamp endTimestamp;
+    private LocalDateTime startTimestamp;
+    private LocalDateTime endTimestamp;
 }

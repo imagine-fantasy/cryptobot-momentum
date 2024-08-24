@@ -30,4 +30,14 @@ public class CryptoPortfolioService {
     public void deleteCryptoPortfolio(Long id) {
         cryptoPortfolioRepository.deleteById(id);
     }
+
+
+    public int deleteCryptoPortfoliobySymbolCustom (String symbol){
+        return cryptoPortfolioRepository.deleteBySymbolCustom(symbol);
+    }
+
+    public boolean isPortfolioEmpty(){
+        return getAllCryptoPortfolios().isEmpty();
+    }
+
 }

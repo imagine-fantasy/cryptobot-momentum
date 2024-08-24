@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -25,5 +26,5 @@ public class TransactionLog {
     private String cryptoCurrency;
     private String type;
     private BigDecimal price;
-    private Timestamp timestamp;
+    private LocalDateTime timestamp;
 }

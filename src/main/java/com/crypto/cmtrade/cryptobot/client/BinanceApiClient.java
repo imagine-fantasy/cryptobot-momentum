@@ -1,6 +1,8 @@
 package com.crypto.cmtrade.cryptobot.client;
 
 import com.crypto.cmtrade.cryptobot.model.CryptoData;
+import com.crypto.cmtrade.cryptobot.util.OrderSide;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -95,6 +97,30 @@ public class BinanceApiClient {
         return response.getBody();
     }
 
+    public BigDecimal getAccountBalance() {
+        String endpoint = "/api/v3/account";
+        String queryString = "";
+        HttpEntity<String> request = createSignedRequest(queryString);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    baseUrl + endpoint,
+                    HttpMethod.GET, request, Map.class);
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> account = response.getBody();
+                for (Map<String, Object> balance : (Iterable<Map<String, Object>>) account.get("balances")) {
+                    if ("USDT".equals(balance.get("asset"))) {
+                        return new BigDecimal((String) balance.get("free"));
+                    }
+                }
+            }
+            return BigDecimal.ZERO;
+        } catch (Exception e) {
+            log.error("Error getting account balance: " + e.getMessage());
+            return BigDecimal.ZERO;
+        }
+    }
     public Map<String, Double> getBalances()  {
         Map<String, Object> accountInfo = getAccountInfo();
 
@@ -151,7 +177,6 @@ public class BinanceApiClient {
         assert allTickers != null;
         return allTickers.stream()
                 .filter(ticker -> {
-                  log.info("Filter about to be applied to symbol"+ ((String) ticker.get("symbol"))+((String) ticker.get("symbol")).endsWith("USDT"));
                     return   ((String) ticker.get("symbol")).endsWith("USDT");
 
                 } ) // Filter for USDT pairs
@@ -174,9 +199,47 @@ public class BinanceApiClient {
     }
 
     // Add other methods for placing orders, etc.
+    public boolean placeOrder(String symbol, BigDecimal amount, OrderSide side) {
 
-    @Setter
-    @Getter
+
+        String endpoint = "/api/v3/order";
+        String queryString = String.format("symbol=%s&side=%s&type=MARKET&quantity=%s",
+                symbol, side, amount.toPlainString());
+
+        HttpEntity<String> request = createSignedRequest(queryString);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    baseUrl + endpoint,
+                    HttpMethod.POST, request, Map.class);
+
+            if (response.getStatusCode() == HttpStatus.OK) {
+                log.info(side + " order placed successfully for " + amount + " " + symbol);
+                return true;
+            } else {
+                log.error("Failed to place " + side + " order. Status: " + response.getStatusCode());
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("Error placing " + side + " order: " + e.getMessage());
+            return false;
+        }
+    }
+
+
+
+    private HttpEntity<String> createSignedRequest(String queryString) {
+
+        String completeQueryString = queryString + "&timestamp=" + getServerTime();
+        String signature = generateSignature(completeQueryString);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-MBX-APIKEY", apiKey);
+
+        return new HttpEntity<>(completeQueryString + "&signature=" + signature, headers);
+    }
+
+   @Data
     private static class ServerTimeResponse {
         private long serverTime;
 
