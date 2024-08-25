@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,6 +30,7 @@ public class BinanceApiClient {
     private static final long CACHE_DURATION_MS = 30000; // 30 seconds
     private long cachedServerTime = 0;
     private long lastFetchTime = 0;
+    private Map<String, SymbolInfo> symbolInfoCache = new ConcurrentHashMap<>();
 
     public BinanceApiClient(@Value("${binance.api.key}") String apiKey,
                             @Value("${binance.secret.key}") String secretKey, @Value("${binance.base_url}") String baseUrl) {
@@ -98,14 +100,28 @@ public class BinanceApiClient {
     }
 
     public BigDecimal getAccountBalance() {
-        String endpoint = "/api/v3/account";
-        String queryString = "";
-        HttpEntity<String> request = createSignedRequest(queryString);
+        String endpoint = "/v3/account";
+
+//        HttpEntity<String> request = createSignedRequest(queryString);
 
         try {
+            long timestamp = getServerTime();
+            String queryString = "timestamp=" + timestamp;
+            String signature = generateSignature(queryString);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-MBX-APIKEY", apiKey);
+
+            String url = baseUrl + "/v3/account?" + queryString + "&signature=" + signature;
+
+            HttpEntity<String> entity = new HttpEntity<>(headers);
             ResponseEntity<Map> response = restTemplate.exchange(
-                    baseUrl + endpoint,
-                    HttpMethod.GET, request, Map.class);
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    Map.class
+            );
+
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> account = response.getBody();
@@ -121,6 +137,41 @@ public class BinanceApiClient {
             return BigDecimal.ZERO;
         }
     }
+
+    public boolean resetTestnetAccountBalance() {
+        String endpoint = "/v1/account/reset";
+
+        try {
+            long timestamp = getServerTime();
+            String queryString = "timestamp=" + timestamp;
+            String signature = generateSignature(queryString);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-MBX-APIKEY", apiKey);
+
+            String url = baseUrl + endpoint + "?" + queryString + "&signature=" + signature;
+
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    Map.class
+            );
+
+            if (response.getStatusCode() == HttpStatus.OK) {
+                log.info("Testnet account balance reset successfully");
+                return true;
+            } else {
+                log.error("Failed to reset testnet account balance. Status: " + response.getStatusCode());
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("Error resetting testnet account balance: " + e.getMessage());
+            return false;
+        }
+    }
+
     public Map<String, Double> getBalances()  {
         Map<String, Object> accountInfo = getAccountInfo();
 
@@ -191,8 +242,8 @@ public class BinanceApiClient {
 
     private CryptoData toCryptoData(Map<String, Object> ticker) {
         return new CryptoData(
-                (String) ticker.get("symbol"),
-                (String) ((String) ticker.get("symbol")).replace("USDT", ""), // Remove USDT from symbol for base asset
+                (String) ((String )ticker.get("symbol")).replace("USDT", ""),
+                (String) ((String) ticker.get("symbol")), // Remove USDT from symbol for base asset
                 new BigDecimal((String) ticker.get("lastPrice")),
                 new BigDecimal((String) ticker.get("priceChangePercent"))
         );
@@ -202,14 +253,14 @@ public class BinanceApiClient {
     public boolean placeOrder(String symbol, BigDecimal amount, OrderSide side) {
 
 
-        String endpoint = "/api/v3/order";
+        String endpoint = "/v3/order";
         String queryString = String.format("symbol=%s&side=%s&type=MARKET&quantity=%s",
                 symbol, side, amount.toPlainString());
 
         HttpEntity<String> request = createSignedRequest(queryString);
-
+        ResponseEntity<Map> response =null;
         try {
-            ResponseEntity<Map> response = restTemplate.exchange(
+             response = restTemplate.exchange(
                     baseUrl + endpoint,
                     HttpMethod.POST, request, Map.class);
 
@@ -217,11 +268,12 @@ public class BinanceApiClient {
                 log.info(side + " order placed successfully for " + amount + " " + symbol);
                 return true;
             } else {
-                log.error("Failed to place " + side + " order. Status: " + response.getStatusCode());
+                log.error("Failed to place " + side  +" symbol "+ symbol+ "order. Status: " + response.getStatusCode() + ". Error: " + response.getBody().get("msg"));
                 return false;
             }
         } catch (Exception e) {
-            log.error("Error placing " + side + " order: " + e.getMessage());
+            e.printStackTrace();
+            log.error("Failed to place " + side + " order. Status: " + response.getStatusCode() + ". Error: " + response.getBody().get("msg"));
             return false;
         }
     }
@@ -244,4 +296,67 @@ public class BinanceApiClient {
         private long serverTime;
 
     }
+
+    public void initializeSymbolInfo() {
+        String endpoint = "/v3/exchangeInfo";
+        String url = baseUrl + endpoint;
+
+        try {
+            ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                List<Map<String, Object>> symbols = (List<Map<String, Object>>) response.getBody().get("symbols");
+
+                for (Map<String, Object> symbolData : symbols) {
+                    String symbol = (String) symbolData.get("symbol");
+                    List<Map<String, Object>> filters = (List<Map<String, Object>>) symbolData.get("filters");
+                    Map<String, Object> lotSizeFilter = filters.stream()
+                            .filter(f -> "LOT_SIZE".equals(f.get("filterType")))
+                            .findFirst()
+                            .orElseThrow(() -> new RuntimeException("LOT_SIZE filter not found for " + symbol));
+
+                    SymbolInfo symbolInfo = new SymbolInfo(
+                            symbol,
+                            new BigDecimal((String) lotSizeFilter.get("minQty")),
+                            new BigDecimal((String) lotSizeFilter.get("maxQty")),
+                            new BigDecimal((String) lotSizeFilter.get("stepSize"))
+                    );
+
+                    symbolInfoCache.put(symbol, symbolInfo);
+                }
+                log.info("Symbol info cache initialized with {} symbols", symbolInfoCache.size());
+            } else {
+                throw new RuntimeException("Failed to fetch exchange info");
+            }
+        } catch (Exception e) {
+            log.error("Error fetching exchange info: " + e.getMessage());
+            throw new RuntimeException("Error fetching exchange info", e);
+        }
+    }
+
+    public SymbolInfo getSymbolInfo(String symbol) {
+        if (symbolInfoCache.isEmpty()) {
+            initializeSymbolInfo();
+        }
+        SymbolInfo symbolInfo = symbolInfoCache.get(symbol);
+        if (symbolInfo == null) {
+            throw new RuntimeException("Symbol info not found for " + symbol);
+        }
+        return symbolInfo;
+    }
+
+    public static class SymbolInfo {
+        public final String symbol;
+        public final BigDecimal minQty;
+        public final BigDecimal maxQty;
+        public final BigDecimal stepSize;
+
+        public SymbolInfo(String symbol, BigDecimal minQty, BigDecimal maxQty, BigDecimal stepSize) {
+            this.symbol = symbol;
+            this.minQty = minQty;
+            this.maxQty = maxQty;
+            this.stepSize = stepSize;
+        }
+    }
+
+
 }

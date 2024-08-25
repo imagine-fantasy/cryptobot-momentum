@@ -2,6 +2,7 @@ package com.crypto.cmtrade.cryptobot.controller;
 
 import com.crypto.cmtrade.cryptobot.model.CryptoData;
 import com.crypto.cmtrade.cryptobot.service.DataFetcherService;
+import com.crypto.cmtrade.cryptobot.service.TestNetAccountServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,10 +18,13 @@ public class CryptoController {
 
     private final DataFetcherService dataFetcherService;
 
+    private final TestNetAccountServices testNetAccountServices;
     @Autowired
-    public CryptoController(DataFetcherService dataFetcherService) {
+    public CryptoController(DataFetcherService dataFetcherService, TestNetAccountServices testNet) {
         this.dataFetcherService = dataFetcherService;
+        this.testNetAccountServices= testNet;
     }
+
 
     @GetMapping("/top20")
     public ResponseEntity<List<CryptoData>> getTop20Cryptocurrencies() {
@@ -32,5 +36,15 @@ public class CryptoController {
     public ResponseEntity<Map<String,Object>> getAccountInfo() throws InterruptedException {
         Map<String, Object> accountInfo = dataFetcherService.getAccountInfo();
         return ResponseEntity.ok(accountInfo);
+    }
+
+    @GetMapping("/resetAccount")
+    public ResponseEntity<Map<String,Object>> resetAccount() throws InterruptedException {
+        boolean isResetCompleted= testNetAccountServices.resetAccount();
+        if(isResetCompleted){
+            Map<String, Object> accountInfo = dataFetcherService.getAccountInfo();
+            return ResponseEntity.ok(accountInfo);
+        }
+        return null;
     }
 }

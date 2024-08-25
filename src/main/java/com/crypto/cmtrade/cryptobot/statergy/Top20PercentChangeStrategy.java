@@ -7,15 +7,19 @@ import com.crypto.cmtrade.cryptobot.service.*;
 import com.crypto.cmtrade.cryptobot.util.OrderSide;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Service
 public class Top20PercentChangeStrategy implements TradingStrategy{
 
     @Autowired
@@ -33,7 +37,7 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
     @Autowired
     DataFetcherService dataFetcherService;
 
-
+    @Scheduled(fixedDelay = 30 ,timeUnit = TimeUnit.MINUTES)
     public void execute(){
         log.info("Top20PercentChangeStrategy execution started");
         if(!portfolioInitializationService.initializePortfolioIfNeeded()){

@@ -1,9 +1,6 @@
 package com.crypto.cmtrade.cryptobot.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -21,7 +18,8 @@ public class BatchTransaction {
 
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "batch_transactions_batch_id_seq")
+    @SequenceGenerator(name = "batch_transactions_batch_id_seq", sequenceName = "batch_transactions_batch_id_seq",allocationSize =1)
     private BigInteger batchId;
     private BigDecimal startBalance;
     private BigDecimal endBalance;

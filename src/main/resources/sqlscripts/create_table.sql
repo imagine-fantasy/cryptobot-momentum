@@ -1,6 +1,6 @@
 CREATE TABLE crypto.crypto_portfolio (
     id BIGSERIAL PRIMARY KEY,
-    cryptocurrency VARCHAR(50) UNIQUE,
+    crypto_currency VARCHAR(50) UNIQUE,
     symbol VARCHAR(10),
     balance DECIMAL(18, 8),
     price DECIMAL(18, 8),
@@ -11,21 +11,32 @@ CREATE TABLE crypto.crypto_portfolio (
 ) TABLESPACE crypto_ts;
 
 
-CREATE TABLE crypto.transaction_log (
-    transaction_id BIGSERIAL PRIMARY KEY,
-    batch_id BIGINT,
-    cryptocurrency VARCHAR(50),
-    type VARCHAR(10) CHECK(type IN ('BUY', 'SELL')),
+CREATE TABLE crypto.crypto_portfolio (
+    id BIGSERIAL PRIMARY KEY,
+    crypto_currency VARCHAR(50),
+    symbol VARCHAR(10) UNIQUE,
     quantity DECIMAL(18, 8),
-    price DECIMAL(18, 8),
-    timestamp TIMESTAMP,
+    last_price DECIMAL(18, 8),
+    market_cap DECIMAL(24, 8),
+    rank INTEGER,
+    last_updated TIMESTAMP,
+    status VARCHAR(50) CHECK (status IN ('ACTIVE', 'ATTEMPTED_BUY_BELOW_MIN', 'ATTEMPTED_BUY_ABOVE_MAX', 'SELL_COMPLETE', 'REMOVED_FROM_TOP20')),
+    status_reason VARCHAR(255),
+    batch_id BIGINT,
     FOREIGN KEY (batch_id) REFERENCES crypto.batch_transactions (batch_id)
 ) TABLESPACE crypto_ts;
 
-CREATE TABLE crypto.batch_transactions (
-    batch_id BIGSERIAL PRIMARY KEY,
-    start_balance DECIMAL(24, 8),
-    end_balance DECIMAL(24, 8),
-    start_timestamp TIMESTAMP,
-    end_timestamp TIMESTAMP
+
+CREATE TABLE crypto.transaction_log (
+    transaction_id BIGSERIAL PRIMARY KEY,
+    batch_id BIGINT,
+    crypto_currency VARCHAR(50),
+    symbol VARCHAR(10),
+    side VARCHAR(4) CHECK(side IN ('BUY', 'SELL')),
+    quantity DECIMAL(18, 8),
+    price DECIMAL(18, 8),
+    timestamp TIMESTAMP,
+    status VARCHAR(50) CHECK (status IN ('ACTIVE', 'ATTEMPTED_BUY_BELOW_MIN', 'ATTEMPTED_BUY_ABOVE_MAX', 'SELL_COMPLETE', 'REMOVED_FROM_TOP20')),
+    status_reason VARCHAR(255),
+    FOREIGN KEY (batch_id) REFERENCES crypto.batch_transactions (batch_id)
 ) TABLESPACE crypto_ts;
