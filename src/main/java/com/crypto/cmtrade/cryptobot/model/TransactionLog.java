@@ -23,8 +23,8 @@ public class TransactionLog {
     private BigInteger transactionId;
     private BigInteger batchId;
     private String cryptoCurrency;
-    private String type;
-    private BigDecimal price;
+    private String side;
+    private BigDecimal quantity;
     private LocalDateTime timestamp;
     @Enumerated(EnumType.STRING)
     private TradeStatus status;

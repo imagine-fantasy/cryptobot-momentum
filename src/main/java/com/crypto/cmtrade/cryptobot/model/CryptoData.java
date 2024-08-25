@@ -28,12 +28,17 @@ public class CryptoData {
     @SerializedName("cmc_rank")
     private Integer rank;
 
+    private BigDecimal price;
+    private BigDecimal priceChangePercent;
+    private BigDecimal volume24h;
 
-    public CryptoData(String cryptoCurrency, String symbol, BigDecimal balance, BigDecimal marketCap) {
-        this.cryptoCurrency = cryptoCurrency;
+
+    public CryptoData(String symbol, String cryptoCurrency, BigDecimal price, BigDecimal priceChangePercent, BigDecimal volume24h) {
         this.symbol = symbol;
-        this.balance = balance;
-        this.marketCap = marketCap;
+        this.cryptoCurrency = cryptoCurrency;
+        this.price = price;
+        this.priceChangePercent = priceChangePercent;
+        this.volume24h = volume24h;
     }
 }
 

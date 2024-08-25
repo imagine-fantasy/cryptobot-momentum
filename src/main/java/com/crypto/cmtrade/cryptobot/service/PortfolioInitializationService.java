@@ -43,7 +43,7 @@ public class PortfolioInitializationService  {
             List<CryptoData> top20 = dataFetcherService.fetchTop20Cryptocurrencies();
             for (CryptoData data : top20){
                 BigDecimal result = balance.divide(BigDecimal.valueOf(20), 8, RoundingMode.DOWN);
-                tradeServices.executeTrade(savedTransaction.getBatchId(),data.getSymbol(), OrderSide.BUY,result);
+                tradeServices.executeTrade(savedTransaction.getBatchId(),data.getSymbol(), OrderSide.BUY,result,data.getPrice());
             }
             BigDecimal endBalance = tradeServices.getAccountBalance();
             savedTransaction.setEndBalance(endBalance);

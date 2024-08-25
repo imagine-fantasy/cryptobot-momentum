@@ -40,11 +40,13 @@ public class CryptoController {
 
     @GetMapping("/resetAccount")
     public ResponseEntity<Map<String,Object>> resetAccount() throws InterruptedException {
-        boolean isResetCompleted= testNetAccountServices.resetAccount();
-        if(isResetCompleted){
-            Map<String, Object> accountInfo = dataFetcherService.getAccountInfo();
-            return ResponseEntity.ok(accountInfo);
+        try{
+            boolean isResetCompleted= testNetAccountServices.resetAccount();
+        } catch (Exception e) {
+
         }
-        return null;
+        Map<String, Object> accountInfo = dataFetcherService.getAccountInfo();
+        return ResponseEntity.ok(accountInfo);
+
     }
 }

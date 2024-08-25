@@ -21,10 +21,10 @@ public class CryptoPortfolio {
     private BigInteger id;
     private String cryptoCurrency;
     private String symbol;
-    private BigDecimal balance;
+    private BigDecimal quantity;
     private BigDecimal marketCap;
     private Integer rank;
-    private BigInteger transactionBatchId;
+    private BigInteger BatchId;
     @Enumerated(EnumType.STRING)
     private TradeStatus status;
     private String statusReason;

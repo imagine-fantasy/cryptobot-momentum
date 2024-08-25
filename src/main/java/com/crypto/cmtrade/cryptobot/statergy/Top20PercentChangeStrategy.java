@@ -53,12 +53,12 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
             List<String> symbols = refreshList.stream().map(CryptoData::getSymbol).collect(Collectors.toList());
             List<CryptoPortfolio> sellList = cryptoPortfolioService.findAllBySymbolNotIn(symbols);
             for(CryptoPortfolio cryptoData:sellList){
-                tradeService.executeTrade(savedTransaction.getBatchId(), cryptoData.getSymbol(), OrderSide.SELL,cryptoData.getBalance());
+                tradeService.executeTrade(savedTransaction.getBatchId(), cryptoData.getSymbol(), OrderSide.SELL,cryptoData.getQuantity(),null);
             }
             BigDecimal balancePostSell = tradeService.getAccountBalance();
             BigDecimal perCryptoBalance = balancePostSell.divide(BigDecimal.valueOf(buyList.size()), 8, RoundingMode.DOWN);
             for(CryptoData buyData:buyList){
-                tradeService.executeTrade(savedTransaction.getBatchId(), buyData.getSymbol(), OrderSide.SELL,perCryptoBalance);
+                tradeService.executeTrade(savedTransaction.getBatchId(), buyData.getSymbol(), OrderSide.SELL,perCryptoBalance,buyData.getPrice());
             }
             BigDecimal postExecutionBalance = tradeService.getAccountBalance();
             savedTransaction.setEndTimestamp(LocalDateTime.now());

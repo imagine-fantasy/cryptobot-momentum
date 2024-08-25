@@ -3,20 +3,22 @@ package com.crypto.cmtrade.cryptobot.client;
 import com.crypto.cmtrade.cryptobot.model.CryptoData;
 import com.crypto.cmtrade.cryptobot.util.OrderSide;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -30,7 +32,7 @@ public class BinanceApiClient {
     private static final long CACHE_DURATION_MS = 30000; // 30 seconds
     private long cachedServerTime = 0;
     private long lastFetchTime = 0;
-    private Map<String, SymbolInfo> symbolInfoCache = new ConcurrentHashMap<>();
+    private final Map<String, SymbolInfo> symbolInfoCache = new ConcurrentHashMap<>();
 
     public BinanceApiClient(@Value("${binance.api.key}") String apiKey,
                             @Value("${binance.secret.key}") String secretKey, @Value("${binance.base_url}") String baseUrl) {
@@ -53,7 +55,7 @@ public class BinanceApiClient {
                 Map.class
         );
 
-        return (String) response.getBody().get("listenKey");
+        return (String) Objects.requireNonNull(response.getBody()).get("listenKey");
     }
 
     public long getServerTime() {
@@ -100,9 +102,7 @@ public class BinanceApiClient {
     }
 
     public BigDecimal getAccountBalance() {
-        String endpoint = "/v3/account";
 
-//        HttpEntity<String> request = createSignedRequest(queryString);
 
         try {
             long timestamp = getServerTime();
@@ -236,16 +236,19 @@ public class BinanceApiClient {
                         Double.parseDouble((String) a.get("priceChangePercent"))
                 ))
                 .limit(20)
-                .map(this::toCryptoData)
+                .map(this:: toCryptoData)
                 .collect(Collectors.toList());
     }
 
+
+
     private CryptoData toCryptoData(Map<String, Object> ticker) {
         return new CryptoData(
-                (String) ((String )ticker.get("symbol")).replace("USDT", ""),
-                (String) ((String) ticker.get("symbol")), // Remove USDT from symbol for base asset
+                (String) ticker.get("symbol"),
+                ((String )ticker.get("symbol")).replace("USDT", ""),// Binance doesn't provide names, so we use symbol
                 new BigDecimal((String) ticker.get("lastPrice")),
-                new BigDecimal((String) ticker.get("priceChangePercent"))
+                new BigDecimal((String) ticker.get("priceChangePercent")),
+                new BigDecimal((String) ticker.get("volume"))
         );
     }
 
@@ -314,11 +317,17 @@ public class BinanceApiClient {
                             .findFirst()
                             .orElseThrow(() -> new RuntimeException("LOT_SIZE filter not found for " + symbol));
 
+                    Map<String, Object> notionalFilter = filters.stream()
+                            .filter(f -> "MIN_NOTIONAL".equals(f.get("filterType")))
+                            .findFirst()
+                            .orElseThrow(() -> new RuntimeException("MIN_NOTIONAL filter not found for " + symbol));
+
                     SymbolInfo symbolInfo = new SymbolInfo(
                             symbol,
                             new BigDecimal((String) lotSizeFilter.get("minQty")),
                             new BigDecimal((String) lotSizeFilter.get("maxQty")),
-                            new BigDecimal((String) lotSizeFilter.get("stepSize"))
+                            new BigDecimal((String) lotSizeFilter.get("stepSize")),
+                            new BigDecimal((String) notionalFilter.get("minNotional"))
                     );
 
                     symbolInfoCache.put(symbol, symbolInfo);
@@ -344,17 +353,19 @@ public class BinanceApiClient {
         return symbolInfo;
     }
 
+    @Data
     public static class SymbolInfo {
         public final String symbol;
         public final BigDecimal minQty;
         public final BigDecimal maxQty;
         public final BigDecimal stepSize;
-
-        public SymbolInfo(String symbol, BigDecimal minQty, BigDecimal maxQty, BigDecimal stepSize) {
+        public final BigDecimal minNotional;
+        public SymbolInfo(String symbol, BigDecimal minQty, BigDecimal maxQty, BigDecimal stepSize, BigDecimal minNotional) {
             this.symbol = symbol;
             this.minQty = minQty;
             this.maxQty = maxQty;
             this.stepSize = stepSize;
+            this.minNotional= minNotional;
         }
     }
 
