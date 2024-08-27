@@ -50,19 +50,19 @@ public class TradeService {
 
             if (adjustedAmount.compareTo(BigDecimal.ZERO) == 0) {
                 log.warn("Cannot meet minimum notional for {} with allocated amount {}. Skipping trade.", symbol, adjustedAmount);
-                saveCryptoFolioAndTransactionLog(batchTransactionId, symbol, side, adjustedAmount, TradeStatus.FAILED_MINIMUM_NOTIONAL, price);
+                saveCryptoFolioAndTransactionLog(batchTransactionId, symbol, side, adjustedAmount, TradeStatus.FAILED_MINIMUM_NOTIONAL, price,adjustedAmount);
                 return null;
             }
 
             if (adjustedAmount.compareTo(symbolInfo.minQty) < 0) {
                 log.warn("Order quantity {} is below minimum quantity {} for {}", adjustedAmount, symbolInfo.minQty, symbol);
-                saveCryptoFolioAndTransactionLog(batchTransactionId, symbol, side, adjustedAmount, TradeStatus.ATTEMPTED_BUY_BELOW_MIN, price);
+                saveCryptoFolioAndTransactionLog(batchTransactionId, symbol, side, adjustedAmount, TradeStatus.ATTEMPTED_BUY_BELOW_MIN, price,adjustedAmount);
                 return null;
             }
 
             if (adjustedAmount.compareTo(symbolInfo.maxQty) > 0) {
                 log.warn("Order quantity {} is above maximum quantity {} for {}", adjustedAmount, symbolInfo.maxQty, symbol);
-                saveCryptoFolioAndTransactionLog(batchTransactionId, symbol, side, adjustedAmount, TradeStatus.ATTEMPTED_BUY_ABOVE_MAX, price);
+                saveCryptoFolioAndTransactionLog(batchTransactionId, symbol, side, adjustedAmount, TradeStatus.ATTEMPTED_BUY_ABOVE_MAX, price,adjustedAmount);
                 return null;
             }
             try{
@@ -97,7 +97,7 @@ public class TradeService {
             cryptoPortfolioService.deleteCryptoPortfoliobySymbolCustom(symbol);
         }
 
-        TransactionLog transactionLog = getTransactionLog(batchTransactionId, symbol, side, adjustedAmount, status,price,result);
+        TransactionLog transactionLog = getTransactionLog(batchTransactionId, symbol, side, adjustedAmount, status,price,result,adjustedAmount);
         transactionLogService.saveTransactionLog(transactionLog);
         log.info("{} order transaction record completed successfully in database ",side);
 
@@ -122,23 +122,24 @@ public class TradeService {
 
         return BigDecimal.ZERO;
     }
-    private void saveCryptoFolioAndTransactionLog(BigInteger batchTransactionId, String symbol, OrderSide side, BigDecimal quantity,TradeStatus status, BigDecimal price
-    ) {
+    private void saveCryptoFolioAndTransactionLog(BigInteger batchTransactionId, String symbol, OrderSide side, BigDecimal quantity,TradeStatus status, BigDecimal price,
+                                                  BigDecimal adjustedAmount) {
         CryptoPortfolio cryptoPortfolio = getPortfolio(batchTransactionId, symbol, quantity, status,price, null);
         cryptoPortfolioService.saveCryptoPortfolio(cryptoPortfolio);
-        TransactionLog transactionLog = getTransactionLog(batchTransactionId, symbol, side, quantity, status,price, null);
+        TransactionLog transactionLog = getTransactionLog(batchTransactionId, symbol, side, quantity, status,price, null,adjustedAmount);
         transactionLogService.saveTransactionLog(transactionLog);
     }
 
     @NotNull
     public TransactionLog getTransactionLog(BigInteger batchTransactionId, String symbol, OrderSide side, BigDecimal quantity, TradeStatus status,BigDecimal price,
-                                            OrderResponse result) {
+                                            OrderResponse result,BigDecimal amount) {
         TransactionLog transactionLog = new TransactionLog();
 
         transactionLog.setSide(side.toString());
         transactionLog.setCryptoCurrency(symbol);
         transactionLog.setBatchId(batchTransactionId);
         transactionLog.setPrice(price);
+        transactionLog.setAmount(amount);
         transactionLog.setTimestamp(LocalDateTime.now());
         transactionLog.setStatus(status);
         if(result != null){

@@ -31,5 +31,6 @@ public class TransactionLog {
     private TradeStatus status;
     private String statusReason;
     private BigInteger orderId;
+    private BigDecimal amount;
 
 }

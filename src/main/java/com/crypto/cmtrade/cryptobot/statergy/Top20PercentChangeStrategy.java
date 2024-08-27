@@ -54,7 +54,12 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
             BatchTransaction savedTransaction = service.saveBatchTransaction(transaction);
             List<CryptoData> refreshList = dataFetcherService.fetchTop20Cryptocurrencies();
             List<CryptoPortfolio> storeTop20List = cryptoPortfolioService.getAllCryptoPortfolios();
-            Set<CryptoData> buyList = refreshList.stream().filter(cryptoData -> !storeTop20List.contains(cryptoData.getSymbol())).collect(Collectors.toSet());
+//            Set<CryptoData> buyList = refreshList.stream().filter(cryptoData -> !storeTop20List.contains(cryptoData.getSymbol())).collect(Collectors.toSet());
+            Set<CryptoData> buyList = refreshList.stream()
+                    .filter(cryptoData -> storeTop20List.stream()
+                            .noneMatch(storedData -> storedData.getSymbol().equals(cryptoData.getSymbol())))
+                    .collect(Collectors.toSet());
+
             List<String> symbols = refreshList.stream().map(CryptoData::getSymbol).collect(Collectors.toList());
             List<CryptoPortfolio> sellList = cryptoPortfolioService.findAllBySymbolNotIn(symbols);
 
@@ -88,7 +93,7 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
         // Decide how to handle portfolios that are not active
         // For example, you might want to remove them from the database
         cryptoPortfolioService.deleteCryptoPortfoliobySymbolCustom(portfolio.getSymbol());
-        TransactionLog transactionLog = tradeService.getTransactionLog(portfolio.getBatchId(), portfolio.getSymbol(), OrderSide.SELL, portfolio.getQuantity(), TradeStatus.REMOVED_FROM_TOP20,portfolio.getLastPrice(), null);
+        TransactionLog transactionLog = tradeService.getTransactionLog(portfolio.getBatchId(), portfolio.getSymbol(), OrderSide.SELL, portfolio.getQuantity(), TradeStatus.REMOVED_FROM_TOP20,portfolio.getLastPrice(), null,portfolio.getAmount());
         transactionLogService.saveTransactionLog(transactionLog);
 
         // Or update their status
