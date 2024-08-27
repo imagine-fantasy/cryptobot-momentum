@@ -1,6 +1,7 @@
 package com.crypto.cmtrade.cryptobot.client;
 
 import com.crypto.cmtrade.cryptobot.model.CryptoData;
+import com.crypto.cmtrade.cryptobot.model.OrderResponse;
 import com.crypto.cmtrade.cryptobot.util.OrderSide;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -15,10 +16,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -253,31 +251,38 @@ public class BinanceApiClient {
     }
 
     // Add other methods for placing orders, etc.
-    public boolean placeOrder(String symbol, BigDecimal amount, OrderSide side) {
+    public OrderResponse placeOrder(String symbol, BigDecimal amount, OrderSide side, BigDecimal quantity) {
 
 
         String endpoint = "/v3/order";
-        String queryString = String.format("symbol=%s&side=%s&type=MARKET&quantity=%s",
-                symbol, side, amount.toPlainString());
+        String queryString= null;
+
+        if (side == OrderSide.BUY) {
+            queryString = String.format("symbol=%s&side=%s&type=MARKET&quoteOrderQty=%s",
+                    symbol, side, amount.toPlainString());
+        } else {
+            queryString = String.format("symbol=%s&side=%s&type=MARKET&quantity=%s",
+                    symbol, side, quantity.toPlainString());
+        }
 
         HttpEntity<String> request = createSignedRequest(queryString);
-        ResponseEntity<Map> response =null;
+        ResponseEntity<OrderResponse> response =null;
         try {
              response = restTemplate.exchange(
                     baseUrl + endpoint,
-                    HttpMethod.POST, request, Map.class);
+                    HttpMethod.POST, request, OrderResponse.class);
 
-            if (response.getStatusCode() == HttpStatus.OK) {
-                log.info(side + " order placed successfully for " + amount + " " + symbol);
-                return true;
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                log.info("Order placed successfully for {}: {}", symbol, response.getBody());
+                return response.getBody();
             } else {
-                log.error("Failed to place " + side  +" symbol "+ symbol+ "order. Status: " + response.getStatusCode() + ". Error: " + response.getBody().get("msg"));
-                return false;
+                log.error("Failed to place order for {}: {}", symbol, response.getBody());
+                throw new RuntimeException("Failed to place order");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            log.error("Failed to place " + side + " order. Status: " + response.getStatusCode() + ". Error: " + response.getBody().get("msg"));
-            return false;
+            log.error("Error placing order for " + symbol + ": " + e.getMessage(), e);
+            throw new RuntimeException("Error placing order", e);
         }
     }
 
@@ -311,28 +316,47 @@ public class BinanceApiClient {
 
                 for (Map<String, Object> symbolData : symbols) {
                     String symbol = (String) symbolData.get("symbol");
-                    List<Map<String, Object>> filters = (List<Map<String, Object>>) symbolData.get("filters");
-                    Map<String, Object> lotSizeFilter = filters.stream()
-                            .filter(f -> "LOT_SIZE".equals(f.get("filterType")))
-                            .findFirst()
-                            .orElseThrow(() -> new RuntimeException("LOT_SIZE filter not found for " + symbol));
 
-                    Map<String, Object> notionalFilter = filters.stream()
-                            .filter(f -> "MIN_NOTIONAL".equals(f.get("filterType")))
-                            .findFirst()
-                            .orElseThrow(() -> new RuntimeException("MIN_NOTIONAL filter not found for " + symbol));
+                    // Only process USDT pairs
+                    if (!symbol.endsWith("USDT")) {
+                        continue;
+                    }
+
+                    List<Map<String, Object>> filters = (List<Map<String, Object>>) symbolData.get("filters");
+
+                    // Find LOT_SIZE filter
+                    Optional<Map<String, Object>> lotSizeFilter = filters.stream()
+                            .filter(f -> "LOT_SIZE".equals(f.get("filterType")))
+                            .findFirst();
+
+                    if (!lotSizeFilter.isPresent()) {
+                        log.warn("LOT_SIZE filter not found for {}. Skipping this symbol.", symbol);
+                        continue;
+                    }
+
+                    // Find MIN_NOTIONAL filter
+                    Optional<Map<String, Object>> notionalFilter = filters.stream()
+                            .filter(f -> "NOTIONAL".equals(f.get("filterType")))
+                            .findFirst();
+
+                    // Use a default value or skip if MIN_NOTIONAL is not found
+                    BigDecimal minNotional = notionalFilter
+                            .map(f -> new BigDecimal((String) f.get("minNotional")))
+                            .orElse(BigDecimal.ZERO);  // or you could use continue to skip this symbol
 
                     SymbolInfo symbolInfo = new SymbolInfo(
                             symbol,
-                            new BigDecimal((String) lotSizeFilter.get("minQty")),
-                            new BigDecimal((String) lotSizeFilter.get("maxQty")),
-                            new BigDecimal((String) lotSizeFilter.get("stepSize")),
-                            new BigDecimal((String) notionalFilter.get("minNotional"))
+                            new BigDecimal((String) lotSizeFilter.get().get("minQty")),
+                            new BigDecimal((String) lotSizeFilter.get().get("maxQty")),
+                            new BigDecimal((String) lotSizeFilter.get().get("stepSize")),
+                            minNotional
                     );
 
                     symbolInfoCache.put(symbol, symbolInfo);
+                    log.info("Added symbol info for {}", symbol);
                 }
-                log.info("Symbol info cache initialized with {} symbols", symbolInfoCache.size());
+
+                log.info("Symbol info cache initialized with {} USDT pairs", symbolInfoCache.size());
             } else {
                 throw new RuntimeException("Failed to fetch exchange info");
             }

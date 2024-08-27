@@ -2,6 +2,7 @@ package com.crypto.cmtrade.cryptobot.service;
 
 import com.crypto.cmtrade.cryptobot.client.BinanceApiClient;
 import com.crypto.cmtrade.cryptobot.model.CryptoPortfolio;
+import com.crypto.cmtrade.cryptobot.model.OrderResponse;
 import com.crypto.cmtrade.cryptobot.model.TransactionLog;
 import com.crypto.cmtrade.cryptobot.util.OrderSide;
 import com.crypto.cmtrade.cryptobot.util.TradeStatus;
@@ -32,87 +33,110 @@ public class TradeService {
     @Autowired
     BinanceApiClient binanceApiClient;
 
-    //    @Scheduled(fixedDelay = 10000)
-    public boolean executeTrade(BigInteger batchTransactionId, String symbol, OrderSide side, BigDecimal amount, BigDecimal price){
+
+    public OrderResponse executeTrade(BigInteger batchTransactionId, String symbol, OrderSide side, BigDecimal amount, BigDecimal price, BigDecimal quantity){
 
 
 
         log.info("{} order for symbol {} for amount {} will be executed at exchange ",side,symbol,amount);
         BinanceApiClient.SymbolInfo symbolInfo = binanceApiClient.getSymbolInfo(symbol);
-        BigDecimal adjustedAmount = adjustQuantity(amount, symbolInfo);
-        BigDecimal notional = adjustedAmount.multiply(price);
-        if (notional.compareTo(symbolInfo.getMinNotional()) < 0) {
-            BigDecimal minQuantity = symbolInfo.getMinNotional().divide(price, 8, RoundingMode.UP);
-            adjustedAmount = adjustQuantity(minQuantity, symbolInfo);
-            log.warn("Adjusted quantity to meet minimum notional value for {}", symbol);
+
+        BigDecimal adjustedAmount = adjustQuantityForNotional(amount, symbolInfo);
+        if (OrderSide.SELL !=side){
+            // CHANGE: Check if adjustment was possible
+            if (adjustedAmount.compareTo(BigDecimal.ZERO) == 0) {
+                log.warn("Cannot meet minimum notional for {} with allocated amount {}. Skipping trade.", symbol, adjustedAmount);
+                saveCryptoFolioAndTransactionLog(batchTransactionId, symbol, side, adjustedAmount, TradeStatus.FAILED_MINIMUM_NOTIONAL, price);
+                return null;
+            }
+
+            if (adjustedAmount.compareTo(symbolInfo.minQty) < 0) {
+                log.warn("Order quantity {} is below minimum quantity {} for {}", adjustedAmount, symbolInfo.minQty, symbol);
+                saveCryptoFolioAndTransactionLog(batchTransactionId, symbol, side, adjustedAmount,TradeStatus.ATTEMPTED_BUY_BELOW_MIN,price);
+                return null;
+            }
+
+            if (adjustedAmount.compareTo(symbolInfo.maxQty) > 0) {
+                log.warn("Order quantity {} is above maximum quantity {} for {}", adjustedAmount, symbolInfo.maxQty, symbol);
+                saveCryptoFolioAndTransactionLog(batchTransactionId, symbol, side, adjustedAmount,TradeStatus.ATTEMPTED_BUY_ABOVE_MAX,price);
+                return null;
+            }
         }
 
-        if (adjustedAmount.compareTo(symbolInfo.minQty) < 0) {
-            log.warn("Order quantity {} is below minimum quantity {} for {}", adjustedAmount, symbolInfo.minQty, symbol);
-            saveCryptoFolioAndTransactionLog(batchTransactionId, symbol, side, amount,TradeStatus.ATTEMPTED_BUY_BELOW_MIN);
-            return false;
-        }
 
-        if (adjustedAmount.compareTo(symbolInfo.maxQty) > 0) {
-            log.warn("Order quantity {} is above maximum quantity {} for {}", adjustedAmount, symbolInfo.maxQty, symbol);
-            saveCryptoFolioAndTransactionLog(batchTransactionId, symbol, side, amount,TradeStatus.ATTEMPTED_BUY_ABOVE_MAX);
-            return false;
-        }
-
-        boolean result = binanceApiClient.placeOrder(symbol, adjustedAmount, side);
-        log.info("{} order for symbol {} for amount {} is  executed at exchange successfully",side,symbol,amount);
+        OrderResponse result = binanceApiClient.placeOrder(symbol, adjustedAmount, side, quantity);
+        log.info("{} order for symbol {} for amount {} is  executed at exchange successfully",side,symbol,adjustedAmount);
         log.info("{} order transaction record database initialized",side);
 
-        if(result){
+        if(result != null) {
             TradeStatus status= null;
             if(OrderSide.BUY==side){
                 status=TradeStatus.ACTIVE;
-                CryptoPortfolio cryptoPortfolio = getPortfolio(batchTransactionId, symbol, amount, status);
+                CryptoPortfolio cryptoPortfolio = getPortfolio(batchTransactionId, symbol, adjustedAmount, status,price,result);
                 cryptoPortfolioService.saveCryptoPortfolio(cryptoPortfolio);
-
-
             }else if(OrderSide.SELL==side){
                 status=TradeStatus.SELL_COMPLETE;
                 cryptoPortfolioService.deleteCryptoPortfoliobySymbolCustom(symbol);
             }
-            TransactionLog transactionLog = getTransactionLog(batchTransactionId, symbol, side, amount, status);
+            TransactionLog transactionLog = getTransactionLog(batchTransactionId, symbol, side, adjustedAmount, status,price,result);
             transactionLogService.saveTransactionLog(transactionLog);
             log.info("{} order transaction record completed successfully in database ",side);
             return result;
         }
 
-        return false;
+        return null;
     }
 
-    private void saveCryptoFolioAndTransactionLog(BigInteger batchTransactionId, String symbol, OrderSide side, BigDecimal price,TradeStatus status) {
-        CryptoPortfolio cryptoPortfolio = getPortfolio(batchTransactionId, symbol, price, status);
+
+    private BigDecimal adjustQuantityForNotional(BigDecimal amount, BinanceApiClient.SymbolInfo symbolInfo) {
+        if (amount!=null && amount.compareTo(symbolInfo.getMinNotional()) >= 0) {
+            // If we already meet the minimum notional, just adjust for step size
+            return amount;
+        }
+
+        // Calculate the minimum quantity needed to meet notional
+
+        return BigDecimal.ZERO;
+    }
+    private void saveCryptoFolioAndTransactionLog(BigInteger batchTransactionId, String symbol, OrderSide side, BigDecimal quantity,TradeStatus status, BigDecimal price
+    ) {
+        CryptoPortfolio cryptoPortfolio = getPortfolio(batchTransactionId, symbol, quantity, status,price, null);
         cryptoPortfolioService.saveCryptoPortfolio(cryptoPortfolio);
-        TransactionLog transactionLog = getTransactionLog(batchTransactionId, symbol, side, price, status);
+        TransactionLog transactionLog = getTransactionLog(batchTransactionId, symbol, side, quantity, status,price, null);
         transactionLogService.saveTransactionLog(transactionLog);
     }
 
     @NotNull
-    private TransactionLog getTransactionLog(BigInteger batchTransactionId, String symbol, OrderSide side, BigDecimal price, TradeStatus status) {
+    public TransactionLog getTransactionLog(BigInteger batchTransactionId, String symbol, OrderSide side, BigDecimal quantity, TradeStatus status,BigDecimal price,
+                                            OrderResponse result) {
         TransactionLog transactionLog = new TransactionLog();
-        transactionLog.setQuantity(price);
+        transactionLog.setQuantity(new BigDecimal(result.getExecutedQty()));
         transactionLog.setSide(side.toString());
         transactionLog.setCryptoCurrency(symbol);
         transactionLog.setBatchId(batchTransactionId);
+        transactionLog.setPrice(price);
         transactionLog.setTimestamp(LocalDateTime.now());
         transactionLog.setStatus(status);
+        transactionLog.setOrderId(BigInteger.valueOf(result.getOrderId()));
+        transactionLog.setQuantity(new BigDecimal(result.getExecutedQty()));
         transactionLog.setStatusReason(status.getReason());
 
         return transactionLog;
     }
 
     @NotNull
-    private  CryptoPortfolio getPortfolio(BigInteger batchTransactionId, String symbol, BigDecimal price, TradeStatus status) {
+    private  CryptoPortfolio  getPortfolio(BigInteger batchTransactionId, String symbol, BigDecimal amount, TradeStatus status, BigDecimal price, OrderResponse result) {
         CryptoPortfolio cryptoPortfolio=new CryptoPortfolio();
         cryptoPortfolio.setCryptoCurrency(symbol);
         cryptoPortfolio.setSymbol(symbol);
-        cryptoPortfolio.setQuantity(price);
+        cryptoPortfolio.setAmount(amount);
+        cryptoPortfolio.setQuantity(new BigDecimal(result.getExecutedQty()));
+        cryptoPortfolio.setLastPrice(price);
         cryptoPortfolio.setBatchId(batchTransactionId);
         cryptoPortfolio.setStatus(status);
+        cryptoPortfolio.setOrderId(BigInteger.valueOf(result.getOrderId()));
+        cryptoPortfolio.setQuantity(new BigDecimal(result.getExecutedQty()));
+        cryptoPortfolio.setLastUpdated(LocalDateTime.now());
         cryptoPortfolio.setStatusReason(status.getReason());
         return cryptoPortfolio;
     }
@@ -122,11 +146,9 @@ public class TradeService {
     }
 
     private BigDecimal adjustQuantity(BigDecimal quantity, BinanceApiClient.SymbolInfo symbolInfo) {
-        BigDecimal remainder = quantity.remainder(symbolInfo.stepSize);
-        if (remainder.compareTo(BigDecimal.ZERO) == 0) {
-            return quantity;
-        }
-        return quantity.subtract(remainder);
+        // Need to understand the below logic
+
+        return quantity.divide(symbolInfo.stepSize, 0, RoundingMode.DOWN).multiply(symbolInfo.stepSize);
     }
     @PostConstruct
     public void initialize(){

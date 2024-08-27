@@ -3,8 +3,10 @@ package com.crypto.cmtrade.cryptobot.statergy;
 import com.crypto.cmtrade.cryptobot.model.BatchTransaction;
 import com.crypto.cmtrade.cryptobot.model.CryptoData;
 import com.crypto.cmtrade.cryptobot.model.CryptoPortfolio;
+import com.crypto.cmtrade.cryptobot.model.TransactionLog;
 import com.crypto.cmtrade.cryptobot.service.*;
 import com.crypto.cmtrade.cryptobot.util.OrderSide;
+import com.crypto.cmtrade.cryptobot.util.TradeStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,9 +37,12 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
     PortfolioInitializationService portfolioInitializationService;
 
     @Autowired
+    TransactionLogService transactionLogService;
+
+    @Autowired
     DataFetcherService dataFetcherService;
 
-    @Scheduled(fixedDelay = 30 ,timeUnit = TimeUnit.MINUTES)
+//    @Scheduled(fixedDelay = 30 ,timeUnit = TimeUnit.MINUTES)
     public void execute(){
         log.info("Top20PercentChangeStrategy execution started");
         if(!portfolioInitializationService.initializePortfolioIfNeeded()){
@@ -52,13 +57,19 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
             Set<CryptoData> buyList = refreshList.stream().filter(cryptoData -> !storeTop20List.contains(cryptoData.getSymbol())).collect(Collectors.toSet());
             List<String> symbols = refreshList.stream().map(CryptoData::getSymbol).collect(Collectors.toList());
             List<CryptoPortfolio> sellList = cryptoPortfolioService.findAllBySymbolNotIn(symbols);
+
             for(CryptoPortfolio cryptoData:sellList){
-                tradeService.executeTrade(savedTransaction.getBatchId(), cryptoData.getSymbol(), OrderSide.SELL,cryptoData.getQuantity(),null);
+                if(cryptoData.getStatus()== TradeStatus.ACTIVE){
+                    tradeService.executeTrade(savedTransaction.getBatchId(), cryptoData.getSymbol(), OrderSide.SELL,cryptoData.getAmount(),BigDecimal.ZERO,cryptoData.getQuantity());
+                }else{
+                    handleNonActivePortfolio(cryptoData);
+                }
+
             }
             BigDecimal balancePostSell = tradeService.getAccountBalance();
             BigDecimal perCryptoBalance = balancePostSell.divide(BigDecimal.valueOf(buyList.size()), 8, RoundingMode.DOWN);
             for(CryptoData buyData:buyList){
-                tradeService.executeTrade(savedTransaction.getBatchId(), buyData.getSymbol(), OrderSide.SELL,perCryptoBalance,buyData.getPrice());
+                tradeService.executeTrade(savedTransaction.getBatchId(), buyData.getSymbol(), OrderSide.BUY,perCryptoBalance,buyData.getPrice(),null);
             }
             BigDecimal postExecutionBalance = tradeService.getAccountBalance();
             savedTransaction.setEndTimestamp(LocalDateTime.now());
@@ -72,6 +83,18 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
 
     }
 
+
+    private void handleNonActivePortfolio(CryptoPortfolio portfolio) {
+        // Decide how to handle portfolios that are not active
+        // For example, you might want to remove them from the database
+        cryptoPortfolioService.deleteCryptoPortfoliobySymbolCustom(portfolio.getSymbol());
+        TransactionLog transactionLog = tradeService.getTransactionLog(portfolio.getBatchId(), portfolio.getSymbol(), OrderSide.SELL, portfolio.getQuantity(), TradeStatus.REMOVED_FROM_TOP20,portfolio.getLastPrice(), null);
+        transactionLogService.saveTransactionLog(transactionLog);
+
+        // Or update their status
+        // portfolio.setStatus(TradeStatus.REMOVED_FROM_TOP20);
+        // cryptoPortfolioService.saveCryptoPortfolio(portfolio);
+    }
 
 
 }

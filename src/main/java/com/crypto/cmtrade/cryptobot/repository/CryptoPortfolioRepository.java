@@ -22,6 +22,9 @@ public interface CryptoPortfolioRepository extends JpaRepository<CryptoPortfolio
     @NotNull
     public Optional<CryptoPortfolio> findById(@NotNull Long id);
 
+    @Query("SELECT cp FROM CryptoPortfolio cp WHERE cp.symbol = :symbol")
+    public Optional<CryptoPortfolio> findBySymbol(@NotNull String symbol);
+
 
     @NotNull
     public CryptoPortfolio save(@NotNull CryptoPortfolio transaction);
@@ -42,4 +45,6 @@ public interface CryptoPortfolioRepository extends JpaRepository<CryptoPortfolio
     @Query("SELECT cp FROM CryptoPortfolio cp WHERE cp.symbol NOT IN :symbols")
     List<CryptoPortfolio> findAllBySymbolNotIn(@Param("symbols") List<String> symbols);
 
+    @Query("SELECT cp FROM CryptoPortfolio cp WHERE cp.status ='ACTIVE'")
+    public List<CryptoPortfolio> findAllByActiveHoldings();
 }

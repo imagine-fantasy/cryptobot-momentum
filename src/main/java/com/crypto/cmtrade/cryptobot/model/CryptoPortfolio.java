@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -22,12 +23,16 @@ public class CryptoPortfolio {
     private String cryptoCurrency;
     private String symbol;
     private BigDecimal quantity;
+    private BigDecimal amount;
     private BigDecimal marketCap;
     private Integer rank;
+    private BigDecimal lastPrice;
     private BigInteger BatchId;
     @Enumerated(EnumType.STRING)
     private TradeStatus status;
     private String statusReason;
+    private LocalDateTime lastUpdated;
+    private BigInteger orderId;
 
 
 }

@@ -26,8 +26,10 @@ public class TransactionLog {
     private String side;
     private BigDecimal quantity;
     private LocalDateTime timestamp;
+    private BigDecimal price;
     @Enumerated(EnumType.STRING)
     private TradeStatus status;
     private String statusReason;
+    private BigInteger orderId;
 
 }
