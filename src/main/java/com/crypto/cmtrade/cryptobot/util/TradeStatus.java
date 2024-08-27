@@ -14,7 +14,8 @@ public enum TradeStatus {
     ATTEMPTED_BUY_ABOVE_MAX("Buy attempt failed: above maximum quantity"),
     SELL_COMPLETE("Sell order completed successfully"),
     REMOVED_FROM_TOP20("Removed from portfolio as it's no longer in the top 20"),
-    FAILED_MINIMUM_NOTIONAL("Failed to meet minimum notional value for crypto currency");
+    FAILED_MINIMUM_NOTIONAL("Failed to meet minimum notional value for crypto currency"),
+    INSUFFICIENT_LIQUIDITY_FOR_LOT_SIZE ("Order book liquidity is less than LOT_SIZE filter minimum quantity"), FAILED("Failed to full fill order ");
     private final String reason;
 
     TradeStatus(String reason) {

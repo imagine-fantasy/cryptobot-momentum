@@ -33,3 +33,14 @@ CREATE TABLE crypto.transaction_log (
     order_id BIGINT,
     FOREIGN KEY (batch_id) REFERENCES crypto.batch_transactions (batch_id)
 ) TABLESPACE crypto_ts;
+
+
+ALTER TABLE crypto.crypto_portfolio
+DROP CONSTRAINT IF EXISTS crypto_portfolio_status_check,
+ADD CONSTRAINT crypto_portfolio_status_check
+CHECK (status IN ('ACTIVE', 'ATTEMPTED_BUY_BELOW_MIN', 'ATTEMPTED_BUY_ABOVE_MAX', 'SELL_COMPLETE', 'REMOVED_FROM_TOP20', 'FAILED_MINIMUM_NOTIONAL', 'INSUFFICIENT_LIQUIDITY_FOR_LOT_SIZE', 'FAILED'));
+
+ALTER TABLE crypto.transaction_log
+DROP CONSTRAINT IF EXISTS transaction_log_status_check,
+ADD CONSTRAINT transaction_log_status_check
+CHECK (status IN ('ACTIVE', 'ATTEMPTED_BUY_BELOW_MIN', 'ATTEMPTED_BUY_ABOVE_MAX', 'SELL_COMPLETE', 'REMOVED_FROM_TOP20', 'FAILED_MINIMUM_NOTIONAL', 'INSUFFICIENT_LIQUIDITY_FOR_LOT_SIZE', 'FAILED'));

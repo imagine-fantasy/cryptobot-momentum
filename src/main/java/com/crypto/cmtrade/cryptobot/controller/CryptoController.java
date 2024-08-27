@@ -8,6 +8,7 @@ import com.crypto.cmtrade.cryptobot.service.TestNetAccountServices;
 import com.crypto.cmtrade.cryptobot.service.TradeService;
 import com.crypto.cmtrade.cryptobot.util.OrderSide;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -87,7 +88,18 @@ public class CryptoController {
 
         return ResponseEntity.ok("Completed successfully");
 
-}
+    }
+
+    @GetMapping("/depth/{symbol}/{limit}")
+    public ResponseEntity<?> getOrderBookDepth(@PathVariable String symbol, @PathVariable int limit) {
+        try {
+            Map<String, Object> depth = testNetAccountServices.getOrderBookDepth(symbol, limit);
+            return ResponseEntity.ok(depth);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error fetching order book depth: " + e.getMessage());
+        }
+    }
 
 
 }

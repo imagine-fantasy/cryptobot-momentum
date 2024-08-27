@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.Mac;
@@ -265,6 +266,10 @@ public class BinanceApiClient {
                     symbol, side, quantity.toPlainString());
         }
 
+        return placeOrder(symbol, queryString, endpoint);
+    }
+
+    private OrderResponse placeOrder(String symbol, String queryString, String endpoint) {
         HttpEntity<String> request = createSignedRequest(queryString);
         ResponseEntity<OrderResponse> response =null;
         try {
@@ -286,7 +291,20 @@ public class BinanceApiClient {
         }
     }
 
+    public OrderResponse placeBuyOrder(String symbol, BigDecimal amount, OrderSide side) {
+        String endpoint = "/v3/order";
+        String queryString = String.format("symbol=%s&side=%s&type=MARKET&quoteOrderQty=%s",
+                symbol, side, amount.toPlainString());
+        return placeOrder(symbol, queryString, endpoint);
+    }
 
+    public OrderResponse placeSellOrder (String symbol, BigDecimal quantity, OrderSide side){
+        String endpoint = "/v3/order";
+        String  queryString = String.format("symbol=%s&side=%s&type=MARKET&quantity=%s",
+                symbol, side, quantity.toPlainString());
+
+        return placeOrder(symbol, queryString, endpoint);
+    }
 
     private HttpEntity<String> createSignedRequest(String queryString) {
 
@@ -393,5 +411,45 @@ public class BinanceApiClient {
         }
     }
 
+    public Map<String, Object> getOrderBookDepth(String symbol, int limit) {
+        String endpoint = "/api/v3/depth";
+        String url = baseUrl + endpoint + "?symbol=" + symbol + "&limit=" + limit;
 
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-MBX-APIKEY", apiKey);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        log.info("url is {}",url);
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> body = response.getBody();
+                List<List<String>> bids = (List<List<String>>) body.get("bids");
+                List<List<String>> asks = (List<List<String>>) body.get("asks");
+
+                BigDecimal totalBidQty = bids.stream()
+                        .map(bid -> new BigDecimal(bid.get(1)))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                BigDecimal totalAskQty = asks.stream()
+                        .map(ask -> new BigDecimal(ask.get(1)))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                Map<String, Object> result = new HashMap<>(body);
+                result.put("totalBidQuantity", totalBidQty);
+                result.put("totalAskQuantity", totalAskQty);
+                result.put("topBidPrice", new BigDecimal(bids.get(0).get(0)));
+                result.put("topAskPrice", new BigDecimal(asks.get(0).get(0)));
+
+                return result;
+            }
+
+
+            throw new RuntimeException("Failed to fetch order book depth");
+        } catch (HttpClientErrorException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error fetching order book depth: " + e.getStatusCode() + " " + e.getStatusText());
+        }
+
+    }
 }
