@@ -26,7 +26,8 @@ import java.util.stream.Collectors;
 public class BinanceApiClient {
     private final String apiKey;
     private final String secretKey;
-    private final RestTemplate restTemplate;
+//    private final RestTemplate restTemplate;
+    private final  RetryableRestTemplate restTemplate;
     private final String baseUrl; // Use this for testnet
     private static final long CACHE_DURATION_MS = 30000; // 30 seconds
     private long cachedServerTime = 0;
@@ -39,7 +40,7 @@ public class BinanceApiClient {
         this.secretKey = secretKey;
         this.baseUrl = baseUrl;
 
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = new RetryableRestTemplate();
     }
 
     public String createListenKey() {
