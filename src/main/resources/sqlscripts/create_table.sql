@@ -1,7 +1,7 @@
 CREATE TABLE crypto.crypto_portfolio (
     id BIGSERIAL PRIMARY KEY,
     crypto_currency VARCHAR(50),
-    symbol VARCHAR(10) UNIQUE,
+    symbol VARCHAR(30) UNIQUE,
     quantity DECIMAL(18, 8),
     amount DECIMAL(18, 8),
     last_price DECIMAL(18, 8),
@@ -22,7 +22,7 @@ CREATE TABLE crypto.transaction_log (
     transaction_id BIGSERIAL PRIMARY KEY,
     batch_id BIGINT,
     crypto_currency VARCHAR(50),
-    symbol VARCHAR(10),
+    symbol VARCHAR(30),
     side VARCHAR(4) CHECK(side IN ('BUY', 'SELL')),
     quantity DECIMAL(18, 8),
     amount DECIMAL(18, 8),
