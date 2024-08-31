@@ -35,12 +35,12 @@ public class BinanceApiClient {
     private final Map<String, SymbolInfo> symbolInfoCache = new ConcurrentHashMap<>();
 
     public BinanceApiClient(@Value("${binance.api.key}") String apiKey,
-                            @Value("${binance.secret.key}") String secretKey, @Value("${binance.base_url}") String baseUrl) {
+                            @Value("${binance.secret.key}") String secretKey, @Value("${binance.base_url}") String baseUrl, RetryableRestTemplate restTemplate) {
         this.apiKey = apiKey;
         this.secretKey = secretKey;
         this.baseUrl = baseUrl;
 
-        this.restTemplate = new RetryableRestTemplate();
+        this.restTemplate = restTemplate;
     }
 
     public String createListenKey() {
@@ -222,6 +222,8 @@ public class BinanceApiClient {
                 null,  // No HttpEntity needed as this is a public endpoint
                 new ParameterizedTypeReference<List<Map<String, Object>>>() {}
         );
+
+
 
         List<Map<String, Object>> allTickers = response.getBody();
 
