@@ -1,9 +1,6 @@
 package com.crypto.cmtrade.cryptobot.statergy;
 
-import com.crypto.cmtrade.cryptobot.model.BatchTransaction;
-import com.crypto.cmtrade.cryptobot.model.CryptoData;
-import com.crypto.cmtrade.cryptobot.model.CryptoPortfolio;
-import com.crypto.cmtrade.cryptobot.model.TransactionLog;
+import com.crypto.cmtrade.cryptobot.model.*;
 import com.crypto.cmtrade.cryptobot.service.*;
 import com.crypto.cmtrade.cryptobot.util.OrderSide;
 import com.crypto.cmtrade.cryptobot.util.TradeStatus;
@@ -42,7 +39,7 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
     @Autowired
     DataFetcherService dataFetcherService;
 
-    @Scheduled(fixedDelay = 30 ,timeUnit = TimeUnit.MINUTES)
+    @Scheduled(fixedDelay = 5   ,timeUnit = TimeUnit.MINUTES)
     public void execute(){
         log.info("Top20PercentChangeStrategy execution started");
         if(!portfolioInitializationService.initializePortfolioIfNeeded()){
@@ -54,7 +51,6 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
             BatchTransaction savedTransaction = service.saveBatchTransaction(transaction);
             List<CryptoData> refreshList = dataFetcherService.fetchTop20Cryptocurrencies();
             List<CryptoPortfolio> storeTop20List = cryptoPortfolioService.getAllCryptoPortfolios();
-//            Set<CryptoData> buyList = refreshList.stream().filter(cryptoData -> !storeTop20List.contains(cryptoData.getSymbol())).collect(Collectors.toSet());
             Set<CryptoData> buyList = refreshList.stream()
                     .filter(cryptoData -> storeTop20List.stream()
                             .noneMatch(storedData -> storedData.getSymbol().equals(cryptoData.getSymbol())))
@@ -62,21 +58,31 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
 
             List<String> symbols = refreshList.stream().map(CryptoData::getSymbol).collect(Collectors.toList());
             List<CryptoPortfolio> sellList = cryptoPortfolioService.findAllBySymbolNotIn(symbols);
+            int numberOfBuys = buyList.size();
+            int numberOfSells = sellList.size();
+            if (!buyList.isEmpty()) {
+                for(CryptoPortfolio cryptoData:sellList){
+                    if(cryptoData.getStatus()== TradeStatus.ACTIVE){
+                        tradeService.executeTrade(savedTransaction.getBatchId(), cryptoData.getSymbol(), OrderSide.SELL,cryptoData.getAmount(),BigDecimal.ZERO,cryptoData.getQuantity());
+                    }else{
+                        numberOfSells=numberOfBuys-1;
+                        handleNonActivePortfolio(cryptoData);
+                    }
 
-            for(CryptoPortfolio cryptoData:sellList){
-                if(cryptoData.getStatus()== TradeStatus.ACTIVE){
-                    tradeService.executeTrade(savedTransaction.getBatchId(), cryptoData.getSymbol(), OrderSide.SELL,cryptoData.getAmount(),BigDecimal.ZERO,cryptoData.getQuantity());
-                }else{
-                    handleNonActivePortfolio(cryptoData);
+                }
+                BigDecimal balancePostSell = tradeService.getAccountBalance();
+                BigDecimal perCryptoBalance = balancePostSell.divide(BigDecimal.valueOf(buyList.size()), 8, RoundingMode.DOWN);
+                for(CryptoData buyData:buyList){
+                    OrderResponse trade = tradeService.executeTrade(savedTransaction.getBatchId(), buyData.getSymbol(), OrderSide.BUY, perCryptoBalance, buyData.getPrice(), null);
+                    if (trade==null){
+                      numberOfBuys=numberOfBuys-1;
+                    }
                 }
 
             }
-            BigDecimal balancePostSell = tradeService.getAccountBalance();
-            BigDecimal perCryptoBalance = balancePostSell.divide(BigDecimal.valueOf(buyList.size()), 8, RoundingMode.DOWN);
-            for(CryptoData buyData:buyList){
-                tradeService.executeTrade(savedTransaction.getBatchId(), buyData.getSymbol(), OrderSide.BUY,perCryptoBalance,buyData.getPrice(),null);
-            }
             BigDecimal postExecutionBalance = tradeService.getAccountBalance();
+            savedTransaction.setNumberOfBuys(numberOfBuys);
+            savedTransaction.setNumberOfSells(numberOfSells);
             savedTransaction.setEndTimestamp(LocalDateTime.now());
             savedTransaction.setEndBalance(postExecutionBalance);
             service.saveBatchTransaction(savedTransaction);

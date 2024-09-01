@@ -2,10 +2,7 @@ package com.crypto.cmtrade.cryptobot.controller;
 
 import com.crypto.cmtrade.cryptobot.model.CryptoData;
 import com.crypto.cmtrade.cryptobot.model.CryptoPortfolio;
-import com.crypto.cmtrade.cryptobot.service.CryptoPortfolioService;
-import com.crypto.cmtrade.cryptobot.service.DataFetcherService;
-import com.crypto.cmtrade.cryptobot.service.TestNetAccountServices;
-import com.crypto.cmtrade.cryptobot.service.TradeService;
+import com.crypto.cmtrade.cryptobot.service.*;
 import com.crypto.cmtrade.cryptobot.util.OrderSide;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -31,12 +28,15 @@ public class CryptoController {
     private  final TradeService tradeService;
 
     private  final CryptoPortfolioService cryptoPortfolioService;
+
+    private  final ApplicationRestartService applicationRestartService;
     @Autowired
-    public CryptoController(DataFetcherService dataFetcherService, TestNetAccountServices testNet, TradeService tradeService, CryptoPortfolioService cryptoPortfolioService) {
+    public CryptoController(DataFetcherService dataFetcherService, TestNetAccountServices testNet, TradeService tradeService, CryptoPortfolioService cryptoPortfolioService, ApplicationRestartService applicationRestartService) {
         this.dataFetcherService = dataFetcherService;
         this.testNetAccountServices= testNet;
         this.tradeService = tradeService;
         this.cryptoPortfolioService = cryptoPortfolioService;
+        this.applicationRestartService = applicationRestartService;
     }
 
 
@@ -95,6 +95,19 @@ public class CryptoController {
         try {
             Map<String, Object> depth = testNetAccountServices.getOrderBookDepth(symbol, limit);
             return ResponseEntity.ok(depth);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error fetching order book depth: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/restart")
+    public ResponseEntity<?> restartApp() {
+        try {
+
+            applicationRestartService.restartApplication();
+
+            return ResponseEntity.ok("");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error fetching order book depth: " + e.getMessage());

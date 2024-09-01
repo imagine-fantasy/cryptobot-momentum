@@ -11,8 +11,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class CryptoApplication implements CommandLineRunner {
 
-	@Autowired
-	private BinanceMarketTickerClient webSocketClient;
+//	@Autowired
+//	private BinanceMarketTickerClient webSocketClient;
 
 	public static void main(String[] args) {
 		SpringApplication.run(CryptoApplication.class, args);
@@ -20,6 +20,6 @@ public class CryptoApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) {
-		webSocketClient.connect();
+//		webSocketClient.connect();
 	}
 }

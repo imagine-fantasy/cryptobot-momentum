@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -145,6 +146,8 @@ public class TradeService {
         if(result != null){
             transactionLog.setOrderId(BigInteger.valueOf(result.getOrderId()));
             transactionLog.setQuantity(new BigDecimal(result.getExecutedQty()));
+            BigDecimal actualAmount = result.getCummulativeQuoteQty() != null ? new BigDecimal(result.getCummulativeQuoteQty()) : BigDecimal.ZERO;
+            transactionLog.setExecutedAmount(actualAmount);
         }
         transactionLog.setStatusReason(status.getReason());
 

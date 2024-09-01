@@ -25,4 +25,6 @@ public class BatchTransaction {
     private BigDecimal endBalance;
     private LocalDateTime startTimestamp;
     private LocalDateTime endTimestamp;
+    private Integer numberOfBuys;
+    private Integer numberOfSells;
 }

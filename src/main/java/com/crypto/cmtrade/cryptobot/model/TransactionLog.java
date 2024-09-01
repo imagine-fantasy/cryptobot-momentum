@@ -33,4 +33,6 @@ public class TransactionLog {
     private BigInteger orderId;
     private BigDecimal amount;
 
+    private BigDecimal executedAmount;
+
 }

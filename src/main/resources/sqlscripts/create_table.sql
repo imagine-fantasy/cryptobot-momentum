@@ -44,3 +44,16 @@ ALTER TABLE crypto.transaction_log
 DROP CONSTRAINT IF EXISTS transaction_log_status_check,
 ADD CONSTRAINT transaction_log_status_check
 CHECK (status IN ('ACTIVE', 'ATTEMPTED_BUY_BELOW_MIN', 'ATTEMPTED_BUY_ABOVE_MAX', 'SELL_COMPLETE', 'REMOVED_FROM_TOP20', 'FAILED_MINIMUM_NOTIONAL', 'INSUFFICIENT_LIQUIDITY_FOR_LOT_SIZE', 'FAILED'));
+
+
+CREATE TABLE IF NOT EXISTS crypto.batch_transactions
+(
+    batch_id bigint NOT NULL DEFAULT nextval('crypto.batch_transactions_batch_id_seq'::regclass),
+    start_balance numeric(24,8),
+    end_balance numeric(24,8),
+    start_timestamp timestamp without time zone,
+    end_timestamp timestamp without time zone,
+    CONSTRAINT batch_transactions_pkey PRIMARY KEY (batch_id)
+) TABLESPACE crypto_ts;
+ALTER TABLE IF EXISTS crypto.batch_transactions
+    OWNER to postgres;

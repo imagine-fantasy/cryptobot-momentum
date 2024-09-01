@@ -1,16 +1,12 @@
 package com.crypto.cmtrade.cryptobot.client;
 
 import lombok.Data;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Recover;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.*;
 
@@ -18,83 +14,91 @@ import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.function.Supplier;
 
-
 @Slf4j
 @Data
 @Component
 public class RetryableRestTemplate {
 
-    private RestTemplate restTemplate ;
+    private RestTemplate restTemplate;
+    private static final int MAX_RETRIES = 3;
+    private static final long INITIAL_DELAY = 1000; // 1 second
+    private static final double BACKOFF_MULTIPLIER = 2;
 
     public RetryableRestTemplate() {
         this.restTemplate = new RestTemplate();
     }
 
-
     public <T> ResponseEntity<T> exchange(String url, HttpMethod method, HttpEntity<?> requestEntity, Class<T> responseType, Object... uriVariables)
             throws RestClientException {
-            return executeWithRetry(() ->restTemplate.exchange(url, method, requestEntity, responseType, uriVariables), url);
+        return executeWithRetry(() -> restTemplate.exchange(url, method, requestEntity, responseType, uriVariables), url);
     }
-
 
     public <T> ResponseEntity<T> exchange(String url, HttpMethod method, HttpEntity<?> requestEntity, Class<T> responseType)
             throws RestClientException {
-        return executeWithRetry(() -> restTemplate.exchange(url, method, requestEntity, responseType),url);
+        return executeWithRetry(() -> restTemplate.exchange(url, method, requestEntity, responseType), url);
     }
-
-
-
-
 
     public <T> ResponseEntity<T> exchange(String url, HttpMethod method, HttpEntity<?> requestEntity,
                                           ParameterizedTypeReference<T> responseType)
             throws RestClientException {
-        return executeWithRetry(()-> restTemplate.exchange(url, method, requestEntity, responseType),url);
+        return executeWithRetry(() -> restTemplate.exchange(url, method, requestEntity, responseType), url);
     }
 
     public <T> T getForObject(String url, Class<T> serverTimeResponseClass) {
-
-        return executeWithRetry(()->  restTemplate.getForObject(url, serverTimeResponseClass),url);
-    }
-    // You can add more methods as needed, wrapping other RestTemplate methods
-
-    // This method allows access to the underlying RestTemplate if needed
-
-
-    @Retryable(
-            value = {ResourceAccessException.class, UnknownHostException.class, HttpServerErrorException.class},
-            maxAttempts = 3,
-            backoff = @Backoff(delay = 1000, multiplier = 2)
-    )
-    public <T> T executeWithRetry(Supplier<T> operation, String url) throws RestClientException {
-        try {
-            return operation.get();
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() == HttpStatus.BAD_REQUEST) {
-                log.error("Bad Request (400) error. Not retrying. URL: {}, Error: {}", url, e.getMessage());
-                throw e; // Don't retry 400 errors
-            }
-            throw e; // Let other client errors be handled by @Recover
-        } catch (ResourceAccessException e) {
-            if (e.getCause() instanceof UnknownHostException) {
-                log.error("Unknown host error. URL: {}, Error: {}", url, e.getMessage());
-            } else {
-                log.error("Resource access error. URL: {}, Error: {}", url, e.getMessage());
-            }
-            throw e; // Let it be retried
-        } catch (HttpServerErrorException e) {
-            log.error("Server error. Retrying. URL: {}, Status: {}, Error: {}", url, e.getStatusCode(), e.getMessage());
-            throw e; // Let it be retried
-        }
+        return executeWithRetry(() -> restTemplate.getForObject(url, serverTimeResponseClass), url);
     }
 
     public ResponseEntity<Map> getForEntity(String url, Class<Map> mapClass) {
-        return executeWithRetry(()-> restTemplate.getForEntity(url, mapClass),url);
+        return executeWithRetry(() -> restTemplate.getForEntity(url, mapClass), url);
     }
 
-    @Recover
-    public <T> T recover(Exception e, Supplier<T> operation, String url) {
-        log.error("All retries failed. URL: {}, Error: {}", url, e.getMessage());
-        throw new RestClientException("Failed to retrieve data after retries", e);
+    public <T> T executeWithRetry(Supplier<T> operation, String url) throws RestClientException {
+        int attempts = 0;
+        long delay = INITIAL_DELAY;
+
+        while (attempts < MAX_RETRIES) {
+            try {
+                T result = operation.get(); // If successful, return immediately
+                log.info("Operation successful on attempt {}. URL: {}", attempts + 1, url);
+                return result;
+            } catch (ResourceAccessException e) {
+                if (e.getCause() instanceof UnknownHostException) {
+                    log.error("Unknown host error. URL: {}, Error: {}", url, e.getMessage());
+                    attempts++;
+                    if (attempts < MAX_RETRIES) {
+                        log.info("Retrying request due to UnknownHostException. Attempt {} of {}. URL: {}",
+                                attempts + 1, MAX_RETRIES, url);
+                        try {
+                            Thread.sleep(delay);
+                            delay *= BACKOFF_MULTIPLIER;
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            throw new RestClientException("Retry interrupted", ie);
+                        }
+                    } else {
+                        log.error("All retries failed due to UnknownHostException. URL: {}", url);
+                        throw new RestClientException("Failed to retrieve data after retries due to UnknownHostException", e);
+                    }
+                } else {
+                    // For other ResourceAccessExceptions, don't retry
+                    log.error("Resource access error (not retrying). URL: {}, Error: {}", url, e.getMessage());
+                    throw e;
+                }
+            } catch (RestClientException e) {
+                // For any other RestClientException, don't retry
+                log.error("Rest client error (not retrying). URL: {}, Error: {}", url, e.getMessage());
+                throw e;
+            }
+        }
+
+        // This line should never be reached due to the throw in the else block above
+        throw new RestClientException("Failed to retrieve data after retries");
+    }
+
+    private void logAndThrowIfFinalAttempt(Exception e, String url, int attempt) throws RestClientException {
+        if (attempt == MAX_RETRIES - 1) {
+            log.error("All retries failed. URL: {}, Error: {}", url, e.getMessage());
+            throw new RestClientException("Failed to retrieve data after retries", e);
+        }
     }
 }
