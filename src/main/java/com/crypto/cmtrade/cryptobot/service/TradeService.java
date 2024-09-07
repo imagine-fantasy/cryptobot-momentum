@@ -89,13 +89,19 @@ public class TradeService {
 
         }else{
 
-            BigDecimal precisionQuantity = adjustQuantityPrecision(symbolInfo, quantity);
-            log.info("{} order for symbol {} for quantity  {} is  will be executed ",side,symbol,precisionQuantity);
-            result = binanceApiClient.placeSellOrder(symbol, precisionQuantity, side);
-            log.info("{} order for symbol {} for quantity {} is  executed at exchange successfully",side,symbol,precisionQuantity);
-            log.info("{} order transaction record database initialized",side);
-            status=TradeStatus.SELL_COMPLETE;
-            cryptoPortfolioService.deleteCryptoPortfoliobySymbolCustom(symbol);
+            try {
+                BigDecimal precisionQuantity = adjustQuantityPrecision(symbolInfo, quantity);
+                log.info("{} order for symbol {} for quantity  {} is  will be executed ",side,symbol,precisionQuantity);
+                result = binanceApiClient.placeSellOrder(symbol, precisionQuantity, side);
+                log.info("{} order for symbol {} for quantity {} is  executed at exchange successfully",side,symbol,precisionQuantity);
+                log.info("{} order transaction record database initialized",side);
+                status=TradeStatus.SELL_COMPLETE;
+                cryptoPortfolioService.deleteCryptoPortfoliobySymbolCustom(symbol);
+            } catch (Exception e) {
+                status=TradeStatus.FAILED;
+                log.error("Sell failed for reason {}", e.getMessage());
+                e.printStackTrace();
+            }
         }
 
         TransactionLog transactionLog = getTransactionLog(batchTransactionId, symbol, side, adjustedAmount, status,price,result,adjustedAmount);

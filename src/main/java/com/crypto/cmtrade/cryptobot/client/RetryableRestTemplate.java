@@ -21,8 +21,8 @@ public class RetryableRestTemplate {
 
     private RestTemplate restTemplate;
     private static final int MAX_RETRIES = 3;
-    private static final long INITIAL_DELAY = 1000; // 1 second
-    private static final double BACKOFF_MULTIPLIER = 2;
+    private static final long INITIAL_DELAY = 4000; // 1 second
+    private static final double BACKOFF_MULTIPLIER = 4;
 
     public RetryableRestTemplate() {
         this.restTemplate = new RestTemplate();

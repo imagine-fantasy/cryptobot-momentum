@@ -16,6 +16,15 @@ CREATE TABLE crypto.crypto_portfolio (
 ) TABLESPACE crypto_ts;
 
 
+CREATE TABLE IF NOT EXISTS crypto.pnl_summary (
+    summary_id BIGSERIAL PRIMARY KEY,
+    total_unrealized_pnl NUMERIC(24,8),
+    total_realized_pnl NUMERIC(24,8),
+    total_current_value NUMERIC(24,8),
+    total_cost_basis NUMERIC(24,8),
+    number_of_positions INTEGER,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 
 CREATE TABLE crypto.transaction_log (

@@ -33,6 +33,8 @@ public class CryptoPortfolio {
     private String statusReason;
     private LocalDateTime lastUpdated;
     private BigInteger orderId;
+    private BigDecimal lastKnownPnl;
+    private LocalDateTime pnlUpdatedAt;
 
 
 }

@@ -242,7 +242,24 @@ public class BinanceApiClient {
                 .collect(Collectors.toList());
     }
 
+    public List<CryptoData> fetchAllCrypto() {
+        String url = baseUrl + "/v3/ticker/24hr";
 
+        ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+        );
+
+        List<Map<String, Object>> allTickers = response.getBody();
+
+        assert allTickers != null;
+        return allTickers.stream()
+                .filter(ticker -> ((String) ticker.get("symbol")).endsWith("USDT"))
+                .map(this::toCryptoData)
+                .collect(Collectors.toList());
+    }
 
     private CryptoData toCryptoData(Map<String, Object> ticker) {
         return new CryptoData(

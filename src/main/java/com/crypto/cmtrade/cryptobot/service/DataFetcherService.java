@@ -24,11 +24,23 @@ public class DataFetcherService {
         return  binanceApiClient.getAccountBalance();
     }
 
+    public List<CryptoData> fetchAllCrypto() {
+        return binanceApiClient.fetchAllCrypto();
+    }
 
     public List<CryptoData> fetchTop20Cryptocurrencies() {
         return binanceApiClient.fetchTop20CoinsByPercentChangeOnBinance();
     }
     public Map<String,Object> getAccountInfo () throws InterruptedException {
         return binanceApiClient.getAccountInfo();
-    }
+
+
+
+
+
+
+}
+
+
+
 }
