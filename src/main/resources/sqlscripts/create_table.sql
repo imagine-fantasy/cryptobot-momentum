@@ -66,3 +66,49 @@ CREATE TABLE IF NOT EXISTS crypto.batch_transactions
 ) TABLESPACE crypto_ts;
 ALTER TABLE IF EXISTS crypto.batch_transactions
     OWNER to postgres;
+
+
+
+    CREATE TABLE crypto.crypto_topn_current (
+        id BIGSERIAL PRIMARY KEY,
+        crypto_currency VARCHAR(50),
+        symbol VARCHAR(30) UNIQUE,
+        quantity DECIMAL(18, 8),
+        amount DECIMAL(18, 8),
+        last_price DECIMAL(18, 8),
+        market_cap DECIMAL(24, 8),
+        rank INTEGER,
+        last_updated TIMESTAMP
+    ) TABLESPACE crypto_ts;
+
+
+CREATE TABLE crypto.crypto_topn_archive (
+    id BIGINT,
+    crypto_currency VARCHAR(255),
+    symbol VARCHAR(255),
+    quantity DECIMAL,
+    amount DECIMAL,
+    market_cap DECIMAL,
+    rank INTEGER,
+    last_price DECIMAL,
+    last_updated TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+
+CREATE OR REPLACE FUNCTION crypto.archive_crypto_topn_current()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO crypto.crypto_topn_archive (
+        id, crypto_currency, symbol, quantity, amount, market_cap, rank, last_price, last_updated
+    )
+    VALUES (
+        OLD.id, OLD.crypto_currency, OLD.symbol, OLD.quantity, OLD.amount, OLD.market_cap, OLD.rank, OLD.last_price, OLD.last_updated
+    );
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_archive_crypto_topn_current
+BEFORE DELETE ON crypto.crypto_topn_current
+FOR EACH ROW
+EXECUTE FUNCTION archive_crypto_topn_current();

@@ -39,7 +39,7 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
     @Autowired
     DataFetcherService dataFetcherService;
 
-//    @Scheduled(fixedDelay = 12   ,timeUnit = TimeUnit.HOURS)
+    @Scheduled(fixedDelay = 12   ,timeUnit = TimeUnit.HOURS)
     public void execute(){
         log.info("Top20PercentChangeStrategy execution started");
         if(!portfolioInitializationService.initializePortfolioIfNeeded()){

@@ -257,6 +257,10 @@ public class BinanceApiClient {
         assert allTickers != null;
         return allTickers.stream()
                 .filter(ticker -> ((String) ticker.get("symbol")).endsWith("USDT"))
+                .sorted((a, b) -> Double.compare(
+                        Double.parseDouble((String) b.get("priceChangePercent")),
+                        Double.parseDouble((String) a.get("priceChangePercent"))
+                ))
                 .map(this::toCryptoData)
                 .collect(Collectors.toList());
     }

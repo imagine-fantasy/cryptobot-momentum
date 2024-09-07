@@ -1,9 +1,6 @@
 package com.crypto.cmtrade.cryptobot.service;
 
-import com.crypto.cmtrade.cryptobot.model.CryptoData;
-import com.crypto.cmtrade.cryptobot.model.CryptoPortfolio;
-import com.crypto.cmtrade.cryptobot.model.PnlData;
-import com.crypto.cmtrade.cryptobot.model.PnlSummary;
+import com.crypto.cmtrade.cryptobot.model.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -34,7 +31,11 @@ public class CalculatePnlDataService {
     @Autowired
     private PnlSummaryService pnlSummaryService;
 
-    @Scheduled(fixedDelay = 5, timeUnit = TimeUnit.MINUTES)
+
+    @Autowired
+    private CryptoTopNCurrentService cryptoTopNCurrentService;
+
+    @Scheduled(fixedDelay = 5, timeUnit = TimeUnit.MINUTES,initialDelay = 1)
     public void calculatePnl(){
         log.info("CalculatePnl started...");
 
@@ -44,10 +45,10 @@ public class CalculatePnlDataService {
             List<CryptoData> cryptoData = dataFetcherService.fetchAllCrypto();
             Map<String, CryptoData> priceMap = cryptoData.stream()
                     .collect(Collectors.toMap(CryptoData::getSymbol, cd -> cd));
-
-
-            List<CryptoPortfolio> currentHoldings = cryptoPortfolioService.getAllCryptoPortfolios();
             LocalDateTime currentTime = LocalDateTime.now();
+            saveTopNCrytpos(cryptoData, currentTime);
+            List<CryptoPortfolio> currentHoldings = cryptoPortfolioService.getAllCryptoPortfolios();
+
             BigDecimal totalCostBasis= new BigDecimal(BigInteger.ZERO);
             BigDecimal totalUnrealizedPnl=new BigDecimal(BigInteger.ZERO);
             BigDecimal totalCurrentValue=new BigDecimal(BigInteger.ZERO);
@@ -71,6 +72,8 @@ public class CalculatePnlDataService {
             }
 
             savePnlSummary(pnlSummary,currentTime, totalUnrealizedPnl, totalCurrentValue, totalCostBasis);
+
+
             log.info("Successfully calculated pnl for portfolios");
         } catch (Exception e) {
             e.printStackTrace();
@@ -80,6 +83,19 @@ public class CalculatePnlDataService {
 
     }
 
+    private void saveTopNCrytpos(List<CryptoData> cryptoData, LocalDateTime currentTime) {
+        cryptoTopNCurrentService.deleteAllCryptoTopNCurrent();
+
+        cryptoData.stream().limit(20).forEach(data ->{
+            CryptoTopNCurrent cryptoTopNCurrent=new CryptoTopNCurrent();
+            cryptoTopNCurrent.setCryptoCurrency(data.getSymbol());
+            cryptoTopNCurrent.setLastPrice(data.getPrice());
+            cryptoTopNCurrent.setMarketCap(data.getMarketCap());
+            cryptoTopNCurrent.setLastUpdated(currentTime);
+            saveCryptoTopNCurrent(cryptoTopNCurrent);
+
+        });
+    }
 
 
     private void savePNLData(String symbol, BigDecimal unrealizedPNL, BigDecimal price, LocalDateTime now,BigDecimal costBasis, BigInteger summaryId) {
@@ -98,6 +114,12 @@ public class CalculatePnlDataService {
         pnlSummary.setTotalCostBasis(totalCostBasis);
         pnlSummary.setTimestamp(now);
         pnlSummaryService.savePnlSummary(pnlSummary);
+    }
+
+
+    private void saveCryptoTopNCurrent(CryptoTopNCurrent pnlTopNCurrent){
+
+        cryptoTopNCurrentService.saveCryptoPortfolio(pnlTopNCurrent);
     }
 
 }
