@@ -112,3 +112,15 @@ CREATE TRIGGER trigger_archive_crypto_topn_current
 BEFORE DELETE ON crypto.crypto_topn_current
 FOR EACH ROW
 EXECUTE FUNCTION archive_crypto_topn_current();
+
+
+CREATE TABLE crypto.crypto_tracking_summary (
+  id SERIAL PRIMARY KEY,
+  summary_id BIGINT REFERENCES crypto.pnl_summary(summary_id),
+  pnl_non_top20 DECIMAL(20,8),
+  total_portfolio_value DECIMAL(20,8),
+  number_of_assets INT,
+  portfolio_snapshot JSON,
+  pnl_summary_snapshot JSON,
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

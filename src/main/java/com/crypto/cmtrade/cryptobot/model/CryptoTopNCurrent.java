@@ -1,6 +1,5 @@
 package com.crypto.cmtrade.cryptobot.model;
 
-import com.crypto.cmtrade.cryptobot.util.TradeStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;

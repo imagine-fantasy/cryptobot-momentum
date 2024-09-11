@@ -39,9 +39,14 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
     @Autowired
     DataFetcherService dataFetcherService;
 
-    @Scheduled(fixedDelay = 12   ,timeUnit = TimeUnit.HOURS)
+
+
+
+//    @Scheduled(fixedDelay = 12   ,timeUnit = TimeUnit.HOURS, initialDelay = 10)
     public void execute(){
+
         log.info("Top20PercentChangeStrategy execution started");
+
         if(!portfolioInitializationService.initializePortfolioIfNeeded()){
             log.info("Top20PercentChangeStrategy execution started, portfolio found Portfolio Initialized ");
             BatchTransaction transaction = new BatchTransaction();
@@ -86,6 +91,7 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
             savedTransaction.setEndTimestamp(LocalDateTime.now());
             savedTransaction.setEndBalance(postExecutionBalance);
             service.saveBatchTransaction(savedTransaction);
+
 
             log.info("Top20PercentChangeStrategy execution completed successfully ");
         }
