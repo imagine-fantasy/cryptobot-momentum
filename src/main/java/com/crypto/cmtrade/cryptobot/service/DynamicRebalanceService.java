@@ -46,7 +46,7 @@ public class DynamicRebalanceService {
         BigDecimal pnlPercentage = pnl.divide(totalCostBasis, 6, RoundingMode.HALF_UP);
         boolean resultThershold = pnlPercentage.compareTo(PNL_THRESHOLD_PERCENT) >= 0;
 
-        log.info("The result threshold is {}" , resultThershold);
+        log.info(" The result threshold is {}" , resultThershold);
         return resultThershold;
     }
 

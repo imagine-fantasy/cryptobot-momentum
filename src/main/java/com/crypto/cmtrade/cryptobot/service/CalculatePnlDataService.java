@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
@@ -47,32 +48,63 @@ public class CalculatePnlDataService {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
-    @Scheduled(fixedDelay = 5, timeUnit = TimeUnit.MINUTES,initialDelay = 1)
+    @Scheduled(fixedDelay = 2, timeUnit = TimeUnit.MINUTES)
     public void calculatePnl(){
         log.info("CalculatePnl started...");
         CryptoTrackingSummary beforePNLProcess = cryptoTrackingSummaryService.getMostRecent();
 
-        log.info(" before PNL Process id ,pnl summary  id {} , {}",beforePNLProcess.getId(),beforePNLProcess.getSummaryId());
+        log.info(" beforePNLProcess CryptoTrackingSummaryId, pnlSummaryId {},{}",beforePNLProcess.getId(),beforePNLProcess.getSummaryId());
 
         try {
 
-            TransactionTemplate transactionTemplate=new TransactionTemplate(transactionManager);
-            PnlSummary pnlSummary;
-            pnlSummary=transactionTemplate.execute(status -> {
-               return calculateAndSavePnlSummary();
-            });
+            log.info("calculating pnl Summary process Intiated");
+            PnlSummary pnlSummary=new PnlSummary();
+            pnlSummary=pnlSummaryService.savePnlSummary(pnlSummary);
+            List<CryptoData> cryptoData = dataFetcherService.fetchAllCrypto();
+            Map<String, CryptoData> priceMap = cryptoData.stream()
+                    .collect(Collectors.toMap(CryptoData::getSymbol, cd -> cd));
+            LocalDateTime currentTime = LocalDateTime.now();
+            saveTopNCrytpos(cryptoData, currentTime);
+            List<CryptoPortfolio> currentHoldings = cryptoPortfolioService.getAllCryptoPortfolios();
+
+            BigDecimal totalCostBasis= new BigDecimal(BigInteger.ZERO);
+            BigDecimal totalUnrealizedPnl=new BigDecimal(BigInteger.ZERO);
+            BigDecimal totalCurrentValue=new BigDecimal(BigInteger.ZERO);
+
+            for (CryptoPortfolio portfolio : currentHoldings) {
+                CryptoData currentData = priceMap.get(portfolio.getSymbol());
+                if (currentData != null && portfolio.getQuantity()!=null) {
+                    BigDecimal currentValue = currentData.getPrice().multiply(portfolio.getQuantity());
+                    BigDecimal costBasis = portfolio.getLastPrice().multiply(portfolio.getQuantity());
+                    BigDecimal unrealizedPNL = currentValue.subtract(costBasis);
+                    portfolio.setLastKnownPnl(unrealizedPNL);
+                    portfolio.setPnlUpdatedAt(currentTime);
+
+                    savePNLData(portfolio.getSymbol(), unrealizedPNL, currentData.getPrice(), currentTime,costBasis,pnlSummary.getSummaryId());
+                    cryptoPortfolioService.saveCryptoPortfolio(portfolio);
+                    totalCostBasis=totalCostBasis.add(costBasis);
+                    totalUnrealizedPnl=totalUnrealizedPnl.add(unrealizedPNL);
+                    totalCurrentValue=totalCurrentValue.add(currentValue);
+
+                }
+            }
+            log.info("calculating for portfolio profit completed");
+             savePnlSummary(pnlSummary,currentTime, totalUnrealizedPnl, totalCurrentValue, totalCostBasis);
 
 
 
             log.info("Successfully calculated pnl for portfolios");
+
+//            cryptoTrackingSummaryService.callAfterPnlSummaryInsert();
+
             CryptoTrackingSummary afterPNLProcess = cryptoTrackingSummaryService.getMostRecent();
             if(afterPNLProcess.getId().compareTo(beforePNLProcess.getId())>0 ){
-                log.info("Dynamically Rebalance intiated ");
+                log.info(" Dynamically Rebalanced initiated ");
                 dynamicRebalanceService.checkAndRebalance();
-                log.info("Dynamically Rebalance completed  ");
+                log.info(" Dynamically Rebalanced completed  ");
             }
 
-            log.info(" after PNL Process id ,pnl summary  id {} , {}",afterPNLProcess.getId(),afterPNLProcess.getSummaryId());
+            log.info(" afterPNLProcess CryptoTrackingSummaryId, pnlSummaryId {},{}",afterPNLProcess.getId(),afterPNLProcess.getSummaryId());
         } catch (Exception e) {
             e.printStackTrace();
             log.error("exception calculating pnl for current cycle: {}", e.getMessage());

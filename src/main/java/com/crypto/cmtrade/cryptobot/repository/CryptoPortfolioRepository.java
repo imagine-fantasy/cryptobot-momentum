@@ -2,8 +2,10 @@ package com.crypto.cmtrade.cryptobot.repository;
 
 import com.crypto.cmtrade.cryptobot.model.BatchTransaction;
 import com.crypto.cmtrade.cryptobot.model.CryptoPortfolio;
+import jakarta.persistence.LockModeType;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

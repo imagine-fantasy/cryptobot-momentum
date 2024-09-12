@@ -33,4 +33,8 @@ public class CryptoTrackingSummaryService {
     public void deleteCryptoTrackingSummaryById(Long id) {
         cryptoTrackingSummaryRepository.deleteById(id);
     }
+
+    public void callAfterPnlSummaryInsert(){
+        cryptoTrackingSummaryRepository.callAfterPnlSummaryInsert();
+    };
 }

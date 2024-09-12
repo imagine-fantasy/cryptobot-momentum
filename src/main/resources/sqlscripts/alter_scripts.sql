@@ -21,3 +21,8 @@ ADD COLUMN executed_amount NUMERIC(24,8) DEFAULT 0
 ALTER TABLE crypto.crypto_portfolio
 ADD COLUMN last_known_pnl NUMERIC(24,8),
 ADD COLUMN pnl_updated_at TIMESTAMP;;
+
+
+DROP TRIGGER IF EXISTS after_pnl_summary_insert ON crypto.pnl_summary;
+
+DROP FUNCTION crypto.after_pnl_summary_insert()

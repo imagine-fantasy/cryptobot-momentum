@@ -5,6 +5,7 @@ import com.crypto.cmtrade.cryptobot.model.PnlSummary;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -26,6 +27,7 @@ public interface CryptoTrackingSummaryRepository extends JpaRepository<CryptoTra
     public CryptoTrackingSummary save(@NotNull CryptoTrackingSummary cryptoTrackingSummary);
 
 
-
+    @Query(value = "SELECT crypto.after_pnl_summary_insert()", nativeQuery = true)
+    void callAfterPnlSummaryInsert();
 
 }
