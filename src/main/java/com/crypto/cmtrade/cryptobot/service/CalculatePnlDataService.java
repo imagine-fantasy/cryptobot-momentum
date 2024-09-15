@@ -99,12 +99,12 @@ public class CalculatePnlDataService {
 
             CryptoTrackingSummary afterPNLProcess = cryptoTrackingSummaryService.getMostRecent();
             if(afterPNLProcess.getId().compareTo(beforePNLProcess.getId())>0 ){
-                log.info(" Dynamically Rebalanced initiated ");
+                log.info("Dynamic initiation of Re-balance for portfolio ");
                 dynamicRebalanceService.checkAndRebalance();
-                log.info(" Dynamically Rebalanced completed  ");
+                log.info("Dynamic Rebalanced process has been completed  ");
             }
 
-            log.info(" afterPNLProcess CryptoTrackingSummaryId, pnlSummaryId {},{}",afterPNLProcess.getId(),afterPNLProcess.getSummaryId());
+            log.info("afterPNLProcess CryptoTrackingSummaryId, pnlSummaryId {},{}",afterPNLProcess.getId(),afterPNLProcess.getSummaryId());
         } catch (Exception e) {
             e.printStackTrace();
             log.error("exception calculating pnl for current cycle: {}", e.getMessage());
