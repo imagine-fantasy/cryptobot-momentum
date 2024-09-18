@@ -17,6 +17,18 @@ COMMENT ON COLUMN crypto.batch_transactions.number_of_sells IS 'Number of sell t
 ALTER TABLE crypto.transaction_log
 ADD COLUMN executed_amount NUMERIC(24,8) DEFAULT 0
 
+ALTER TABLE crypto.crypto_portfolio
+ADD COLUMN rolling_pct_change24h NUMERIC(24,8);
+
+ALTER TABLE crypto.crypto_topn_archive
+ADD COLUMN rolling_pct_change24h NUMERIC(24,8);
+
+ALTER TABLE crypto.pnl_data
+ADD COLUMN rolling_pct_change24h NUMERIC(24,8);
+
+ALTER TABLE crypto.crypto_topn_current
+ADD COLUMN rolling_pct_change24h NUMERIC(24,8);
+
 
 ALTER TABLE crypto.crypto_portfolio
 ADD COLUMN last_known_pnl NUMERIC(24,8),

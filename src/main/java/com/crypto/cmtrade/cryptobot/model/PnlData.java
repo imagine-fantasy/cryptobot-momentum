@@ -26,5 +26,6 @@ public class PnlData {
     private BigDecimal currentPrice;
     private BigDecimal costBasis;
     private BigInteger summaryId;
+    private BigDecimal rollingPctChange24h;
 
 }

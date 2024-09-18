@@ -41,7 +41,7 @@ BEGIN
     );
 
 	  -- Calculate total cost basis
-    SELECT COALESCE(SUM(cpo.amount), 0) INTO total_cost_basis
+    SELECT COALESCE(SUM(cpo.last_price * cpo.quantity), 0) INTO total_cost_basis
     FROM crypto.crypto_portfolio cpo where cpo.quantity is not null ;
 
     -- Get PNL summary data

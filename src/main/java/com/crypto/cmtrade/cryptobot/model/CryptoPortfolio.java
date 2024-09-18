@@ -34,6 +34,7 @@ public class CryptoPortfolio {
     private LocalDateTime lastUpdated;
     private BigInteger orderId;
     private BigDecimal lastKnownPnl;
+    private BigDecimal rollingPctChange24h;
     private LocalDateTime pnlUpdatedAt;
 
 

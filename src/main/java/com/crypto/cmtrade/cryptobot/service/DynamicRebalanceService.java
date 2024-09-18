@@ -21,7 +21,7 @@ public class DynamicRebalanceService {
     private static final BigDecimal MEDIUM_THRESHOLD=new BigDecimal("0.001");
     private static final BigDecimal EXTREME_SELL_OFF=new BigDecimal("0.025");
     //    private static final BigDecimal PNL_THRESHOLD_PERCENT=new BigDecimal("0.008");
-    private static final BigDecimal STOP_LOSS_THRESHOLD=new BigDecimal("-0.03");
+    private static final BigDecimal STOP_LOSS_THRESHOLD=new BigDecimal("-0.04");
 
 
 

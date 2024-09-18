@@ -27,5 +27,6 @@ public class CryptoTopNCurrent {
     private Integer rank;
     private BigDecimal lastPrice;
     private LocalDateTime lastUpdated;
+    private BigDecimal rollingPctChange24h;
 
 }

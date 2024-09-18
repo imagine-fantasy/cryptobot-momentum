@@ -6,8 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -48,7 +46,7 @@ public class CalculatePnlDataService {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
-    @Scheduled(fixedDelay = 2, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
     public void calculatePnl(){
         log.info("CalculatePnl started...");
         CryptoTrackingSummary beforePNLProcess = cryptoTrackingSummaryService.getMostRecent();
@@ -79,8 +77,8 @@ public class CalculatePnlDataService {
                     BigDecimal unrealizedPNL = currentValue.subtract(costBasis);
                     portfolio.setLastKnownPnl(unrealizedPNL);
                     portfolio.setPnlUpdatedAt(currentTime);
-
-                    savePNLData(portfolio.getSymbol(), unrealizedPNL, currentData.getPrice(), currentTime,costBasis,pnlSummary.getSummaryId());
+                    portfolio.setRollingPctChange24h(currentData.getPriceChangePercent());
+                    savePNLData(portfolio.getSymbol(), unrealizedPNL, currentData.getPrice(), currentTime,costBasis,pnlSummary.getSummaryId(),currentData.getPriceChangePercent());
                     cryptoPortfolioService.saveCryptoPortfolio(portfolio);
                     totalCostBasis=totalCostBasis.add(costBasis);
                     totalUnrealizedPnl=totalUnrealizedPnl.add(unrealizedPNL);
@@ -137,7 +135,7 @@ public class CalculatePnlDataService {
                 portfolio.setLastKnownPnl(unrealizedPNL);
                 portfolio.setPnlUpdatedAt(currentTime);
 
-                savePNLData(portfolio.getSymbol(), unrealizedPNL, currentData.getPrice(), currentTime,costBasis,pnlSummary.getSummaryId());
+                savePNLData(portfolio.getSymbol(), unrealizedPNL, currentData.getPrice(), currentTime,costBasis,pnlSummary.getSummaryId(),currentData.getPriceChangePercent());
                 cryptoPortfolioService.saveCryptoPortfolio(portfolio);
                 totalCostBasis=totalCostBasis.add(costBasis);
                 totalUnrealizedPnl=totalUnrealizedPnl.add(unrealizedPNL);
@@ -158,13 +156,14 @@ public class CalculatePnlDataService {
             cryptoTopNCurrent.setLastPrice(data.getPrice());
             cryptoTopNCurrent.setMarketCap(data.getMarketCap());
             cryptoTopNCurrent.setLastUpdated(currentTime);
+            cryptoTopNCurrent.setRollingPctChange24h(data.getPriceChangePercent());
             saveCryptoTopNCurrent(cryptoTopNCurrent);
 
         });
     }
 
 
-    private void savePNLData(String symbol, BigDecimal unrealizedPNL, BigDecimal price, LocalDateTime now,BigDecimal costBasis, BigInteger summaryId) {
+    private void savePNLData(String symbol, BigDecimal unrealizedPNL, BigDecimal price, LocalDateTime now,BigDecimal costBasis, BigInteger summaryId,BigDecimal pricePercentChange) {
 
         PnlData  pnlData=new PnlData();
         pnlData.setSymbol(symbol);
@@ -172,6 +171,7 @@ public class CalculatePnlDataService {
         pnlData.setLastUpdated(now);
         pnlData.setCurrentPrice(price);
         pnlData.setSummaryId(summaryId);
+        pnlData.setRollingPctChange24h(pricePercentChange);
         pnlDataService.savePnlData(pnlData);
     }
     private PnlSummary savePnlSummary(PnlSummary pnlSummary, LocalDateTime now, BigDecimal totalUnrealizedPnl, BigDecimal totalCurrentValue, BigDecimal totalCostBasis) {
