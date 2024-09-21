@@ -38,4 +38,5 @@ public class CryptoPortfolio {
     private LocalDateTime pnlUpdatedAt;
 
 
+
 }

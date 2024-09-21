@@ -20,8 +20,7 @@ public class DynamicRebalanceService {
     private static final BigDecimal LARGE_THRESHOLD=new BigDecimal("0.002");
     private static final BigDecimal MEDIUM_THRESHOLD=new BigDecimal("0.001");
     private static final BigDecimal EXTREME_SELL_OFF=new BigDecimal("0.025");
-    //    private static final BigDecimal PNL_THRESHOLD_PERCENT=new BigDecimal("0.008");
-    private static final BigDecimal STOP_LOSS_THRESHOLD=new BigDecimal("-0.04");
+    private static final BigDecimal STOP_LOSS_THRESHOLD=new BigDecimal("-0.02");
 
 
 
@@ -40,9 +39,9 @@ public class DynamicRebalanceService {
         CryptoTrackingSummary summary=cryptoTrackingSummaryService.getMostRecent();
         log.info(" Crypto Tracking Summary PNL is {}, for Recorded timeStamp {}", summary.getPnlNonTop20(),summary.getTimestamp());
         if(summary!=null && shouldRebalanceTrailingStop(summary)){
-            log.info("Rebalancing Started ");
+            log.info("Balancing Started ");
             top20PercentChangeStrategy.execute();
-            log.info("Rebalancing Completed ");
+            log.info("Balancing Completed ");
         }
 
     }
@@ -106,7 +105,7 @@ public class DynamicRebalanceService {
             BigDecimal diffFromFirst=pnlPercentage.subtract(firstEntry);
             log.info("First Entry  PNL is {} with queue size {}, The difference is {} ",firstEntry,pnlQueue.size(),diffFromFirst);
             if (diffFromFirst.compareTo(LARGE_THRESHOLD)> 0){
-                log.info("Large change detected. Re-balancing. Diff: {}, Latest PNL %: {}", diffFromFirst, pnlPercentage);
+                log.info("Large change detected. Re-balancing. Diff: {}, Latest PNL %: {}, First PNL % {}", diffFromFirst, pnlPercentage, firstEntry);
                 return true;
             }
         }

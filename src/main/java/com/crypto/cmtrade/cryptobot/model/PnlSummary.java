@@ -26,4 +26,5 @@ public class PnlSummary {
     private BigDecimal totalCurrentValue;
 
 
+
 }

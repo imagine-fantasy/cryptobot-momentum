@@ -9,6 +9,7 @@ DECLARE
 	total_cost_basis DECIMAL(20,8);
     non_top20_portfolio JSONB;
     pnl_summary_snapshot JSONB;
+    non_top20_count INTEGER; -- New variable to store the count
 BEGIN
 
 
@@ -17,7 +18,7 @@ BEGIN
     LOCK TABLE crypto.crypto_tracking_summary IN EXCLUSIVE MODE;
 
     -- Calculate PNL for non-top20 cryptocurrencies
-    SELECT COALESCE(SUM(last_known_pnl), 0) INTO pnl_non_top20
+    SELECT COALESCE(SUM(last_known_pnl), 0), count(1) INTO pnl_non_top20,non_top20_count
     FROM crypto.crypto_portfolio o
     WHERE symbol NOT IN (
         SELECT crypto_currency FROM crypto.crypto_topn_current
@@ -60,13 +61,15 @@ BEGIN
         pnl_non_top20,
         non_top20_portfolio_snapshot,
         pnl_summary_snapshot,
-		total_cost_basis
+		total_cost_basis,
+		non_top20_count
     ) VALUES (
         NEW.summary_id,
         pnl_non_top20,
         non_top20_portfolio,
         pnl_summary_snapshot,
-		total_cost_basis
+		total_cost_basis,
+		non_top20_count
     );
 
     RETURN NEW;
