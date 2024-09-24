@@ -41,7 +41,7 @@ public class PortfolioInitializationService  {
             transaction.setStartTimestamp(LocalDateTime.now());
             BatchTransaction savedTransaction = service.saveBatchTransaction(transaction);
             List<CryptoData> top20 = dataFetcherService.fetchTop20Cryptocurrencies();
-            BigDecimal result = balance.divide(BigDecimal.valueOf(20), 8, RoundingMode.DOWN);
+            BigDecimal result = balance.divide(BigDecimal.valueOf(top20.size()), 8, RoundingMode.DOWN);
             for (CryptoData data : top20){
 
                 tradeServices.executeTrade(savedTransaction.getBatchId(),data.getSymbol(), OrderSide.BUY,result,data.getPrice(),null);

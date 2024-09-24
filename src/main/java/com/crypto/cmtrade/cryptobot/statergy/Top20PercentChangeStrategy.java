@@ -42,7 +42,8 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
 
 
 
-//    @Scheduled(fixedDelay = 12   ,timeUnit = TimeUnit.HOURS, initialDelay = 12)
+//    @Scheduled(fixedDelay = 12   ,timeUnit = TimeUnit.HOURS, initialDelay = 9)
+//    @Scheduled(fixedDelay = 12   ,timeUnit = TimeUnit.HOURS)
     public void execute(){
 
         log.info("Top20PercentChangeStrategy execution started");

@@ -24,9 +24,13 @@ public class CryptoTrackingSummary {
     private BigInteger summaryId;
     private BigDecimal pnlNonTop20;
     private BigDecimal totalCostBasis;
+    private BigDecimal avgNonTopnChange;
+    private BigDecimal avgTopnChange;
     private LocalDateTime timestamp;
     @Column(name = "non_top20_count")
     private BigInteger nonTop20Count;
+    private BigInteger batchId;
+    private LocalDateTime batchTimestamp;
 
     // Getters and setters
 }

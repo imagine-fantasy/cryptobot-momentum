@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -21,12 +23,15 @@ public class DynamicRebalanceService {
     private static final BigDecimal MEDIUM_THRESHOLD=new BigDecimal("0.001");
     private static final BigDecimal EXTREME_SELL_OFF=new BigDecimal("0.025");
     private static final BigDecimal STOP_LOSS_THRESHOLD=new BigDecimal("-0.02");
+    private static final BigDecimal DIFFERENCE_AVGTOPN_AVGNONTOPN_PERC_THRESHOLD=new BigDecimal("4.00");
+    private static final BigDecimal DIFF_AVGTOPN_NONTOPN_THRESHOLD=new BigDecimal("0.002");
+    private static final Long HOUR_DIFFERENCE_TRIGGER=10l;
 
 
 
     //private queue
 
-    private Deque<BigDecimal> pnlQueue=new LinkedList<>();
+    private final Deque<BigDecimal> pnlQueue=new LinkedList<>();
 
     @Autowired
     private CryptoTrackingSummaryService cryptoTrackingSummaryService;
@@ -70,7 +75,7 @@ public class DynamicRebalanceService {
         BigDecimal pnlPercentage = pnl.divide(totalCostBasis, 6, RoundingMode.HALF_UP);
 
         if(pnlPercentage.compareTo(STOP_LOSS_THRESHOLD) <= 0){
-            log.info("Stop loss detected and will be triggered for PNL perecentage{}",pnlPercentage);
+            log.info("Stop loss detected and will be triggered for PNL % {}",pnlPercentage);
             resetQueue();
 
             return true;
@@ -86,6 +91,30 @@ public class DynamicRebalanceService {
             resetQueue();
             return true;
         }
+
+        //AvgTopn and AvgNonTopN Percent entries block started
+        BigDecimal avgNonTopNPercent = cryptoTrackingSummary.getAvgNonTopnChange();
+        BigDecimal avgTopNpercent = cryptoTrackingSummary.getAvgTopnChange();
+        if (avgTopNpercent!=null && avgNonTopNPercent !=null){
+            BigDecimal difference = avgTopNpercent.subtract(avgNonTopNPercent).abs();
+            if(cryptoTrackingSummary.getBatchTimestamp()!=null && difference.compareTo(DIFFERENCE_AVGTOPN_AVGNONTOPN_PERC_THRESHOLD)>=0){
+                long hourDifference = ChronoUnit.HOURS.between(cryptoTrackingSummary.getBatchTimestamp(), LocalDateTime.now());
+
+                log.info("AvgTopN % {} AvgNonTopN % {}, the difference is {} and the hour difference between batch cycle is {}",avgTopNpercent,avgNonTopNPercent,difference,hourDifference);
+
+                if (hourDifference >= HOUR_DIFFERENCE_TRIGGER && pnlQueue.isEmpty()){
+                    if(pnlPercentage.compareTo(DIFF_AVGTOPN_NONTOPN_THRESHOLD)>=0){
+
+                        log.info("Difference between avgTopNPercent and avgNonTopNPercent is detected hours difference {},pnl percent {},queue size is {} and percent difference is {}"
+                                ,hourDifference,pnlPercentage, 0,difference);
+                        return true;
+                    }
+
+                }
+            }
+
+        }
+        //AvgTopn and AvgNonTopN Percent entries block ended
 
 
         if (pnlPercentage.compareTo(PNL_ENTRY_THRESHOLD_PERCENT)<0){
@@ -110,6 +139,7 @@ public class DynamicRebalanceService {
             }
         }
 
+
         if(pnlQueue.size()>=2){
             List<BigDecimal> queueAsList = new ArrayList<>(pnlQueue);
             BigDecimal secondLastEntry = queueAsList.get(queueAsList.size() - 2);
@@ -127,12 +157,42 @@ public class DynamicRebalanceService {
         }else {
             log.info("Not enough entries in queue for second-last comparison. Queue size: {}", pnlQueue.size());
         }
-         log.info("No re-balance conditions met. Current PNL %: {}", pnlPercentage);
+
+
+
+
+
+        log.info("No re-balance conditions met. Current PNL %: {}", pnlPercentage);
         return false;
     }
 
 
     private void resetQueue(){
         pnlQueue.clear();
+    }
+    private boolean shouldBalanceInitiateFromAvgNonAndAvgTopN(CryptoTrackingSummary cryptoTrackingSummary, BigDecimal pnlPercentage,Deque pnlQueue){
+
+        BigDecimal avgNonTopNPercent = cryptoTrackingSummary.getAvgNonTopnChange();
+        BigDecimal avgTopNpercent = cryptoTrackingSummary.getAvgTopnChange();
+        if (avgTopNpercent!=null && avgNonTopNPercent !=null){
+            BigDecimal difference = avgTopNpercent.subtract(avgNonTopNPercent).abs();
+            if(cryptoTrackingSummary.getBatchTimestamp()!=null && difference.compareTo(DIFFERENCE_AVGTOPN_AVGNONTOPN_PERC_THRESHOLD)>=0){
+                log.info("AvgTopN % {} AvgNonTopN % {}, the difference is {}",avgTopNpercent,avgNonTopNPercent,difference);
+                long hourDifference = ChronoUnit.HOURS.between(cryptoTrackingSummary.getBatchTimestamp(), LocalDateTime.now());
+                if (hourDifference > HOUR_DIFFERENCE_TRIGGER && pnlQueue.isEmpty()){
+                    if(pnlPercentage.compareTo(DIFF_AVGTOPN_NONTOPN_THRESHOLD)>=0){
+
+                        log.info("Difference between avgTopNPercent and avgNonTopNPercent is detected hours difference {},pnl percent {},queue size is {} and percent difference is {}"
+                                ,hourDifference,pnlPercentage, 0,difference);
+                        return true;
+                    }
+
+                }
+            }
+
+        }
+
+
+        return false;
     }
 }

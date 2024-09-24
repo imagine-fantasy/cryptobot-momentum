@@ -5,6 +5,13 @@ ADD COLUMN number_of_buys INTEGER DEFAULT 0;
 ALTER TABLE crypto.batch_transactions
 ADD COLUMN number_of_sells INTEGER DEFAULT 0;
 
+ALTER TABLE crypto.crypto_tracking_summary
+ADD COLUMN batch_timestamp TIMESTAMP;
+
+ALTER TABLE crypto.crypto_tracking_summary
+ADD COLUMN batch_id INTEGER ;
+
+
 
 ALTER TABLE crypto.batch_transactions
 ADD COLUMN executed_amount NUMERIC(24,8) DEFAULT 0;
@@ -29,6 +36,14 @@ ADD COLUMN rolling_pct_change24h NUMERIC(24,8);
 ALTER TABLE crypto.crypto_topn_current
 ADD COLUMN rolling_pct_change24h NUMERIC(24,8);
 
+
+
+ALTER TABLE crypto.crypto_tracking_summary
+ADD COLUMN avg_non_topn_change NUMERIC(24,8);
+
+
+ALTER TABLE crypto.crypto_tracking_summary
+ADD COLUMN avg_topn_change NUMERIC(24,8);
 
 ALTER TABLE crypto.crypto_portfolio
 ADD COLUMN last_known_pnl NUMERIC(24,8),
