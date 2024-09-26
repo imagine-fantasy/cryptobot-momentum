@@ -23,6 +23,7 @@ public class DynamicRebalanceService {
     private static final BigDecimal MEDIUM_THRESHOLD=new BigDecimal("0.001");
     private static final BigDecimal EXTREME_SELL_OFF=new BigDecimal("0.025");
     private static final BigDecimal STOP_LOSS_THRESHOLD=new BigDecimal("-0.02");
+    private static final BigDecimal STOP_LOSS_THRESHOLD_MIN=new BigDecimal("-0.008");
     private static final BigDecimal DIFFERENCE_AVGTOPN_AVGNONTOPN_PERC_THRESHOLD=new BigDecimal("4.00");
     private static final BigDecimal DIFF_AVGTOPN_NONTOPN_THRESHOLD=new BigDecimal("0.002");
     private static final Long HOUR_DIFFERENCE_TRIGGER=10l;
@@ -102,14 +103,12 @@ public class DynamicRebalanceService {
 
                 log.info("AvgTopN % {} AvgNonTopN % {}, the difference is {} and the hour difference between batch cycle is {}",avgTopNpercent,avgNonTopNPercent,difference,hourDifference);
 
-                if (hourDifference >= HOUR_DIFFERENCE_TRIGGER && pnlQueue.isEmpty()){
-                    if(pnlPercentage.compareTo(DIFF_AVGTOPN_NONTOPN_THRESHOLD)>=0){
+                if (pnlPercentage.compareTo(STOP_LOSS_THRESHOLD_MIN)<=0&& pnlQueue.isEmpty()){
+
 
                         log.info("Difference between avgTopNPercent and avgNonTopNPercent is detected hours difference {},pnl percent {},queue size is {} and percent difference is {}"
                                 ,hourDifference,pnlPercentage, 0,difference);
                         return true;
-                    }
-
                 }
             }
 
