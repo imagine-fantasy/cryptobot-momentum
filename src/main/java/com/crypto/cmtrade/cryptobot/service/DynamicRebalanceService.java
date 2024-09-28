@@ -100,10 +100,10 @@ public class DynamicRebalanceService {
             BigDecimal difference = avgTopNpercent.subtract(avgNonTopNPercent).abs();
             if(cryptoTrackingSummary.getBatchTimestamp()!=null && difference.compareTo(DIFFERENCE_AVGTOPN_AVGNONTOPN_PERC_THRESHOLD)>=0){
                 long hourDifference = ChronoUnit.HOURS.between(cryptoTrackingSummary.getBatchTimestamp(), LocalDateTime.now());
+                boolean lossTriggerThers = pnlPercentage.compareTo(STOP_LOSS_THRESHOLD_MIN) <= 0;
+                log.info("AvgTopN % {} AvgNonTopN % {}, the difference is {} and the hour difference between batch cycle is {}, Is loss Threshold eligible {} ",avgTopNpercent,avgNonTopNPercent,difference,hourDifference,lossTriggerThers);
 
-                log.info("AvgTopN % {} AvgNonTopN % {}, the difference is {} and the hour difference between batch cycle is {}",avgTopNpercent,avgNonTopNPercent,difference,hourDifference);
-
-                if (pnlPercentage.compareTo(STOP_LOSS_THRESHOLD_MIN)<=0&& pnlQueue.isEmpty()){
+                if (pnlPercentage.compareTo(STOP_LOSS_THRESHOLD_MIN)<=0 && pnlQueue.isEmpty()){
 
 
                         log.info("Difference between avgTopNPercent and avgNonTopNPercent is detected hours difference {},pnl percent {},queue size is {} and percent difference is {}"

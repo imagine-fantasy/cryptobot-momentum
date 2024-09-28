@@ -90,6 +90,39 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.eclipse.jetty.websocket</groupId>
+			<artifactId>websocket-jetty-client</artifactId>
+			<version>11.0.15</version>
+		</dependency>
+
+		<!-- Jetty HTTP client -->
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-client</artifactId>
+			<version>11.0.15</version>
+		</dependency>
+
+		<!-- Jetty HTTP core -->
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-http</artifactId>
+			<version>11.0.15</version>
+		</dependency>
+
+		<!-- Jetty IO -->
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-io</artifactId>
+			<version>11.0.15</version>
+		</dependency>
+
+		<!-- Jetty Util -->
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-util</artifactId>
+			<version>11.0.15</version>
+		</dependency>
+		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<version>42.7.2</version>
