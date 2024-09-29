@@ -46,8 +46,8 @@ public class CalculatePnlDataService {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
-    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
-    public void calculatePnl(){
+//    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
+    public void calculatePnl(Map<String, CryptoData> allData, List<CryptoData> top20){
         log.info("CalculatePnl started...");
         CryptoTrackingSummary beforePNLProcess = cryptoTrackingSummaryService.getMostRecent();
 
@@ -58,11 +58,11 @@ public class CalculatePnlDataService {
             log.info("calculating pnl Summary process Intiated");
             PnlSummary pnlSummary=new PnlSummary();
             pnlSummary=pnlSummaryService.savePnlSummary(pnlSummary);
-            List<CryptoData> cryptoData = dataFetcherService.fetchAllCrypto();
-            Map<String, CryptoData> priceMap = cryptoData.stream()
+            //List<CryptoData> cryptoData = dataFetcherService.fetchAllCrypto();
+            Map<String, CryptoData> priceMap = allData.values().stream()
                     .collect(Collectors.toMap(CryptoData::getSymbol, cd -> cd));
             LocalDateTime currentTime = LocalDateTime.now();
-            saveTopNCrytpos(cryptoData, currentTime);
+            saveTopNCrytpos(allData, currentTime);
             List<CryptoPortfolio> currentHoldings = cryptoPortfolioService.getAllCryptoPortfolios();
 
             BigDecimal totalCostBasis= new BigDecimal(BigInteger.ZERO);
@@ -98,7 +98,7 @@ public class CalculatePnlDataService {
             CryptoTrackingSummary afterPNLProcess = cryptoTrackingSummaryService.getMostRecent();
             if(afterPNLProcess.getId().compareTo(beforePNLProcess.getId())>0 ){
                 log.info("Dynamic initiation of Re-balance for portfolio ");
-                dynamicRebalanceService.checkAndRebalance();
+                dynamicRebalanceService.checkAndRebalance(allData,top20);
                 log.info("Dynamic Rebalanced process has been completed  ");
             }
 
@@ -119,7 +119,7 @@ public class CalculatePnlDataService {
         Map<String, CryptoData> priceMap = cryptoData.stream()
                 .collect(Collectors.toMap(CryptoData::getSymbol, cd -> cd));
         LocalDateTime currentTime = LocalDateTime.now();
-        saveTopNCrytpos(cryptoData, currentTime);
+     //   saveTopNCrytpos(cryptoData, currentTime);
         List<CryptoPortfolio> currentHoldings = cryptoPortfolioService.getAllCryptoPortfolios();
 
         BigDecimal totalCostBasis= new BigDecimal(BigInteger.ZERO);
@@ -147,10 +147,10 @@ public class CalculatePnlDataService {
         return savePnlSummary(pnlSummary,currentTime, totalUnrealizedPnl, totalCurrentValue, totalCostBasis);
     }
 
-    private void saveTopNCrytpos(List<CryptoData> cryptoData, LocalDateTime currentTime) {
+    private void saveTopNCrytpos(Map<String,CryptoData> cryptoData, LocalDateTime currentTime) {
         cryptoTopNCurrentService.deleteAllCryptoTopNCurrent();
 
-        cryptoData.stream().limit(20).forEach(data ->{
+        cryptoData.values().stream().limit(20).forEach(data ->{
             CryptoTopNCurrent cryptoTopNCurrent=new CryptoTopNCurrent();
             cryptoTopNCurrent.setCryptoCurrency(data.getSymbol());
             cryptoTopNCurrent.setLastPrice(data.getPrice());
@@ -190,5 +190,6 @@ public class CalculatePnlDataService {
 
         cryptoTopNCurrentService.saveCryptoPortfolio(pnlTopNCurrent);
     }
+
 
 }

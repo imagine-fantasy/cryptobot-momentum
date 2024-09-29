@@ -6,15 +6,14 @@ import com.crypto.cmtrade.cryptobot.util.OrderSide;
 import com.crypto.cmtrade.cryptobot.util.TradeStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -44,19 +43,21 @@ public class Top20PercentChangeStrategy implements TradingStrategy{
 
 //    @Scheduled(fixedDelay = 12   ,timeUnit = TimeUnit.HOURS, initialDelay = 9)
 //    @Scheduled(fixedDelay = 12   ,timeUnit = TimeUnit.HOURS)
-    public void execute(){
+    public void execute(Map<String, CryptoData> allData, List<CryptoData> top20){
 
         log.info("Top20PercentChangeStrategy execution started");
 
-        if(!portfolioInitializationService.initializePortfolioIfNeeded()){
+        if(!portfolioInitializationService.initializePortfolioIfNeeded(allData,top20)){
             log.info("Top20PercentChangeStrategy execution started, portfolio found Portfolio Initialized ");
             BatchTransaction transaction = new BatchTransaction();
             BigDecimal balance = tradeService.getAccountBalance();
             transaction.setStartBalance(balance);
             transaction.setStartTimestamp(LocalDateTime.now());
             BatchTransaction savedTransaction = service.saveBatchTransaction(transaction);
-            List<CryptoData> refreshList = dataFetcherService.fetchTop20Cryptocurrencies();
+//            List<CryptoData> refreshList = dataFetcherService.fetchTop20Cryptocurrencies();
+            List<CryptoData> refreshList =top20;
             List<CryptoPortfolio> storeTop20List = cryptoPortfolioService.getAllCryptoPortfolios();
+
             Set<CryptoData> buyList = refreshList.stream()
                     .filter(cryptoData -> storeTop20List.stream()
                             .noneMatch(storedData -> storedData.getSymbol().equals(cryptoData.getSymbol())))

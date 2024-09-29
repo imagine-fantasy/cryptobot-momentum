@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -31,7 +32,7 @@ public class PortfolioInitializationService  {
 
 
 
-    public boolean initializePortfolioIfNeeded() {
+    public boolean initializePortfolioIfNeeded(Map<String, CryptoData> allData, List<CryptoData> top20) {
 
         if(cryptoPortfolioService.isPortfolioEmpty()){
             log.info("Portfolio is empty, First Purchase will be executed");
@@ -40,7 +41,6 @@ public class PortfolioInitializationService  {
             transaction.setStartBalance(balance);
             transaction.setStartTimestamp(LocalDateTime.now());
             BatchTransaction savedTransaction = service.saveBatchTransaction(transaction);
-            List<CryptoData> top20 = dataFetcherService.fetchTop20Cryptocurrencies();
             BigDecimal result = balance.divide(BigDecimal.valueOf(top20.size()), 8, RoundingMode.DOWN);
             for (CryptoData data : top20){
 

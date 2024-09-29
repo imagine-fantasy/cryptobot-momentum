@@ -1,5 +1,6 @@
 package com.crypto.cmtrade.cryptobot.service;
 
+import com.crypto.cmtrade.cryptobot.model.CryptoData;
 import com.crypto.cmtrade.cryptobot.model.CryptoTrackingSummary;
 import com.crypto.cmtrade.cryptobot.statergy.Top20PercentChangeStrategy;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 @Service
 @Slf4j
@@ -32,7 +34,8 @@ public class DynamicRebalanceService {
 
     //private queue
 
-    private final Deque<BigDecimal> pnlQueue=new LinkedList<>();
+    private final Deque<BigDecimal> pnlQueue=new ConcurrentLinkedDeque<>();
+    private final Object queueLock = new Object();
 
     @Autowired
     private CryptoTrackingSummaryService cryptoTrackingSummaryService;
@@ -41,14 +44,19 @@ public class DynamicRebalanceService {
     private Top20PercentChangeStrategy top20PercentChangeStrategy;
 
     //    @Scheduled(fixedDelay =5, timeUnit = TimeUnit.MINUTES)
-    public void checkAndRebalance(){
-        CryptoTrackingSummary summary=cryptoTrackingSummaryService.getMostRecent();
-        log.info(" Crypto Tracking Summary PNL is {}, for Recorded timeStamp {}", summary.getPnlNonTop20(),summary.getTimestamp());
-        if(summary!=null && shouldRebalanceTrailingStop(summary)){
-            log.info("Balancing Started ");
-            top20PercentChangeStrategy.execute();
-            log.info("Balancing Completed ");
+    public void checkAndRebalance(Map<String, CryptoData> allData, List<CryptoData> top20){
+
+
+        synchronized (queueLock){
+            CryptoTrackingSummary summary=cryptoTrackingSummaryService.getMostRecent();
+            log.info(" Crypto Tracking Summary PNL is {}, for Recorded timeStamp {}", summary.getPnlNonTop20(),summary.getTimestamp());
+            if(summary!=null && shouldRebalanceTrailingStop(summary)){
+                log.info("Balancing Started ");
+                top20PercentChangeStrategy.execute(allData,top20);
+                log.info("Balancing Completed ");
+            }
         }
+
 
     }
 
