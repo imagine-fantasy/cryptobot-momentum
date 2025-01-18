@@ -3,6 +3,7 @@ package com.crypto.cmtrade.cryptobot.model;
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -33,12 +34,13 @@ public class CryptoData {
     private BigDecimal volume24h;
 
 
-    public CryptoData(String symbol, String cryptoCurrency, BigDecimal price, BigDecimal priceChangePercent, BigDecimal volume24h) {
+    public CryptoData(String symbol, String cryptoCurrency, BigDecimal price, BigDecimal priceChangePercent, BigDecimal volume24h, Integer rank) {
         this.symbol = symbol;
         this.cryptoCurrency = cryptoCurrency;
         this.price = price;
         this.priceChangePercent = priceChangePercent;
         this.volume24h = volume24h;
+        this.rank=rank;
     }
 }
 

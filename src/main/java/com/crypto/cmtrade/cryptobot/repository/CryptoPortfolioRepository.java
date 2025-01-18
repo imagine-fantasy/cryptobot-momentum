@@ -32,6 +32,8 @@ public interface CryptoPortfolioRepository extends JpaRepository<CryptoPortfolio
     public CryptoPortfolio save(@NotNull CryptoPortfolio transaction);
 
 
+
+
     @Modifying
     @Transactional
     void deleteBySymbol(String symbol);

@@ -2,6 +2,7 @@ package com.crypto.cmtrade.cryptobot.client;
 
 import com.crypto.cmtrade.cryptobot.event.CryptoDataUpdateEvent;
 import com.crypto.cmtrade.cryptobot.model.CryptoData;
+import com.crypto.cmtrade.cryptobot.util.UtilConstants;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -23,19 +24,24 @@ import java.io.IOException;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 public class BinanceMarketTickerClient   implements WebSocketListener{
 
-//    private static final String BINANCE_WS_URL = "wss://data-stream.binance.vision/ws/!ticker@arr";
-//    private static final String BINANCE_WS_URL = "wss://data-stream.binance.vision/ws/!ticker_4h@arr";
-    private static final String BINANCE_WS_URL = "wss://stream.binance.com:9443/ws/!ticker_4h@arr@5000ms";
+    //    private static final String BINANCE_WS_URL = "wss://data-stream.binance.vision/ws/!ticker@arr";
+//    private static final String BINANCE_WS_URL = "wss://data-stream.binance.vision/ws/!ticker_4h@arr@3000ms";
+        private static final String BINANCE_WS_URL = "wss://stream.binance.com:9443/ws/!ticker_4h@arr@3000ms";
+//        private static final String BINANCE_WS_URL = "wss://stream.binance.com:9443/ws/!ticker@arr@3000ms";
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    private final BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>();
-    private final ExecutorService messageProcessor = Executors.newVirtualThreadPerTaskExecutor();
+//    private final BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>();
+    private final BlockingDeque<String> messageStack = new LinkedBlockingDeque<>();
+//    private final ExecutorService messageProcessor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ScheduledExecutorService messageProcessor = Executors.newScheduledThreadPool(1);
+//    private final ExecutorService messageProcessor = Executors.newSingleThreadScheduledExecutor();
     private Session session;
     private WebSocketClient client;
     private StringBuilder partialMessage = new StringBuilder();
@@ -71,7 +77,9 @@ public class BinanceMarketTickerClient   implements WebSocketListener{
 
     @Override
     public void onWebSocketText(String message) {
-        messageQueue.offer(message);
+//        messageQueue.offer(message);
+        messageStack.clear();
+        messageStack.push(message);
     }
 
     @Override
@@ -92,23 +100,42 @@ public class BinanceMarketTickerClient   implements WebSocketListener{
     }
 
     private void startMessageProcessing() {
-        messageProcessor.submit(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
+        messageProcessor.scheduleWithFixedDelay(()->{
+
                 try {
-                    String message = messageQueue.take();
-                    handleTickerUpdates(message);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } catch (Exception e) {
+                    log.info(" message stack size is {}", messageStack.size());
+//                    String message = messageQueue.take();
+                    String message= messageStack.pollLast();
+                    messageStack.clear();
+                    if (message != null){
+                        handleTickerUpdates(message);
+                    }
+
+                }  catch (Exception e) {
                     log.error("Error processing message", e);
                 }
-            }
-        });
+
+        },3,30,TimeUnit.SECONDS);
+//        messageProcessor.submit(() -> {
+//            while (!Thread.currentThread().isInterrupted()) {
+//                try {
+//
+////                    String message = messageQueue.take();
+//                    String message= messageStack.pollLast();
+//                    if (message != null){
+//                        handleTickerUpdates(message);
+//                    }
+//
+//                }  catch (Exception e) {
+//                    log.error("Error processing message", e);
+//                }
+//            }
+//        });
     }
 
     private void handleTickerUpdates(String payload) {
         try {
-            System.out.println("payload "+ payload);
+//            System.out.println("payload "+ payload);
             var tickers = objectMapper.readValue(payload, new TypeReference<List<Map<String, Object>>>() {});
 //            var usdtPairs = tickers.stream()
 //                    .filter(ticker -> ((String) ticker.get("s")).endsWith("USDT"))
@@ -127,14 +154,21 @@ public class BinanceMarketTickerClient   implements WebSocketListener{
                             this::toCryptoData
                     ));
 
-            List<CryptoData> top20CryptoData = allCryptoDataMap.values().parallelStream()
+            AtomicInteger rank = new AtomicInteger(1);
+            List<CryptoData> top20CryptoData = allCryptoDataMap.values().stream()
                     .sorted(Comparator.comparing(CryptoData::getPriceChangePercent).reversed())
-                    .limit(20)
-                     .toList();
+                    .limit(UtilConstants.DEFAULT_SIZE)
+                    .peek(crypto -> crypto.setRank(rank.getAndIncrement()))
+                    .toList();
 
             logTop20USDTPairs(top20CryptoData);
 
-//            eventPublisher.publishEvent(new CryptoDataUpdateEvent(this,allCryptoDataMap,top20CryptoData));
+            eventPublisher.publishEvent(new CryptoDataUpdateEvent(this,allCryptoDataMap,top20CryptoData));
+            log.info("Top 20 Sleeping for 10 seconds ");
+//            Thread.sleep(30000);
+            log.info("Completed top20 after 10 seconds");
+
+
         } catch (Exception e) {
             log.error("Error parsing ticker data", e);
         }
@@ -154,6 +188,7 @@ public class BinanceMarketTickerClient   implements WebSocketListener{
     private void sendPing() {
         if (session != null && session.isOpen()) {
             try {
+                System.currentTimeMillis();
                 session.getRemote().sendPing(ByteBuffer.wrap("ping".getBytes()));
                 log.debug("Sent ping message");
             } catch (Exception e) {
@@ -188,6 +223,7 @@ public class BinanceMarketTickerClient   implements WebSocketListener{
                 new BigDecimal((String) ticker.get("c")),
                 new BigDecimal((String) ticker.get("P")), // Assuming 1h percent change
                 new BigDecimal((String) ticker.get("v"))
+                ,null
         );
     }
 }

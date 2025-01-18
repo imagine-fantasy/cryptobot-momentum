@@ -3,6 +3,7 @@ package com.crypto.cmtrade.cryptobot.client;
 import com.crypto.cmtrade.cryptobot.model.CryptoData;
 import com.crypto.cmtrade.cryptobot.model.OrderResponse;
 import com.crypto.cmtrade.cryptobot.util.OrderSide;
+import com.crypto.cmtrade.cryptobot.util.UtilConstants;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,7 +11,6 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -19,6 +19,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -226,7 +227,7 @@ public class BinanceApiClient {
 
 
         List<Map<String, Object>> allTickers = response.getBody();
-
+        AtomicInteger rank = new AtomicInteger(1);
         assert allTickers != null;
         return allTickers.stream()
                 .filter(ticker -> {
@@ -237,8 +238,9 @@ public class BinanceApiClient {
                         Double.parseDouble((String) b.get("priceChangePercent")),
                         Double.parseDouble((String) a.get("priceChangePercent"))
                 ))
-                .limit(20)
+//                .limit(UtilConstants.DEFAULT_SIZE)
                 .map(this:: toCryptoData)
+                .peek(crypto -> crypto.setRank(rank.getAndIncrement()))
                 .collect(Collectors.toList());
     }
 
@@ -271,7 +273,8 @@ public class BinanceApiClient {
                 ((String )ticker.get("symbol")).replace("USDT", ""),// Binance doesn't provide names, so we use symbol
                 new BigDecimal((String) ticker.get("lastPrice")),
                 new BigDecimal((String) ticker.get("priceChangePercent")),
-                new BigDecimal((String) ticker.get("volume"))
+                new BigDecimal((String) ticker.get("volume")),
+                null
         );
     }
 
@@ -409,13 +412,17 @@ public class BinanceApiClient {
     }
 
     public SymbolInfo getSymbolInfo(String symbol) {
+        SymbolInfo symbolInfo=null;
         if (symbolInfoCache.isEmpty()) {
             initializeSymbolInfo();
         }
-        SymbolInfo symbolInfo = symbolInfoCache.get(symbol);
+        symbolInfo = symbolInfoCache.get(symbol);
         if (symbolInfo == null) {
-            throw new RuntimeException("Symbol info not found for " + symbol);
+            initializeSymbolInfo();
+
         }
+        symbolInfo=symbolInfoCache.get(symbol);
+
         return symbolInfo;
     }
 

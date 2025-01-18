@@ -39,12 +39,21 @@ public class TradeService {
 
         log.info("{} order for symbol {} for amount {} will be executed at exchange ",side,symbol,amount);
         BinanceApiClient.SymbolInfo symbolInfo = binanceApiClient.getSymbolInfo(symbol);
+
         OrderResponse result= null;
 
 
         TradeStatus status=null;
 
+        if(symbolInfo==null){
+            log.warn("Symbol info not found for {} {}. Skipping trade.", symbol, BigDecimal.ZERO);
+            saveCryptoFolioAndTransactionLog(batchTransactionId, symbol, side, BigDecimal.ZERO, TradeStatus.FAILED, price,BigDecimal.ZERO);
+            return null;
+        }
+
         BigDecimal adjustedAmount = adjustQuantityForNotional(amount, symbolInfo);
+
+
 
         if (OrderSide.SELL !=side){
             // CHANGE: Check if adjustment was possible

@@ -4,6 +4,7 @@ import com.crypto.cmtrade.cryptobot.event.CryptoDataUpdateEvent;
 import com.crypto.cmtrade.cryptobot.model.CryptoData;
 import com.crypto.cmtrade.cryptobot.service.CalculatePnlDataService;
 import com.crypto.cmtrade.cryptobot.service.PortfolioInitializationService;
+import com.crypto.cmtrade.cryptobot.util.UtilConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
@@ -28,8 +29,8 @@ public class CryptoDataEventListener {
         Map<String, CryptoData> allData = event.getAllCryptoDataMap();
         List<CryptoData> top20 = event.getTop20CryptoData();
         // Use the updated data...
-        if (top20!=null && top20.size()>=20){
-            log.info("Event Listener Services Process started {}", top20.size());
+        if (top20!=null && top20.size()>= UtilConstants.DEFAULT_SIZE){
+            log.info("Event Listener Services Process started {}, map size is {}", top20.size(),allData.size());
             portfolioInitializationService.initializePortfolioIfNeeded(allData,top20);
             pnlDataService.calculatePnl(allData,top20);
             log.info("Event Listener Services Process completed {}",top20.size());

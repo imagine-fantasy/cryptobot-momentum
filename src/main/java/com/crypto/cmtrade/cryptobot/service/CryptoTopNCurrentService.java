@@ -1,45 +1,46 @@
 package com.crypto.cmtrade.cryptobot.service;
 
-import com.crypto.cmtrade.cryptobot.model.CryptoPortfolio;
 import com.crypto.cmtrade.cryptobot.model.CryptoTopNCurrent;
-import com.crypto.cmtrade.cryptobot.repository.CryptoPortfolioRepository;
 import com.crypto.cmtrade.cryptobot.repository.CryptoTopNCurrentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class CryptoTopNCurrentService {
 
-    @Autowired
-    private CryptoTopNCurrentRepository cryptoTopNCurrentRepository;
+
+    private final CryptoTopNCurrentRepository cryptoTopNArchiveRepository;
 
     public List<CryptoTopNCurrent> getAllCryptoPortfolios() {
-        return cryptoTopNCurrentRepository.findAll();
+        return cryptoTopNArchiveRepository.findAll();
     }
 
     public CryptoTopNCurrent getCryptoPortfolioById(Long id) {
-        return cryptoTopNCurrentRepository.findById(id).orElse(null);
+        return cryptoTopNArchiveRepository.findById(id).orElse(null);
     }
 
     public CryptoTopNCurrent saveCryptoPortfolio(CryptoTopNCurrent cryptoTopNCurrent) {
-        return cryptoTopNCurrentRepository.save(cryptoTopNCurrent);
+        return cryptoTopNArchiveRepository.save(cryptoTopNCurrent);
     }
 
     public void deleteCryptoPortfolio(Long id) {
-        cryptoTopNCurrentRepository.deleteById(id);
+        cryptoTopNArchiveRepository.deleteById(id);
     }
 
 
     public int deleteAllCryptoTopNCurrent(){
-        return cryptoTopNCurrentRepository.deleteAllFromTopN();
+        return cryptoTopNArchiveRepository.deleteAllFromTopN();
     }
 
 
-    public Optional<CryptoTopNCurrent> findBySymbol(String symbol){
-        return cryptoTopNCurrentRepository.findBySymbol(symbol);
-    }
 
+
+
+    public List<CryptoTopNCurrent> saveAllCryptoTopNCurrent(List<CryptoTopNCurrent> cryptoTopNCurrents){
+        return cryptoTopNArchiveRepository.saveAll(cryptoTopNCurrents);
+    }
 }

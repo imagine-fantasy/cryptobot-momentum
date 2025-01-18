@@ -16,14 +16,14 @@ import java.util.Optional;
 @Repository
 public interface CryptoTopNCurrentRepository extends JpaRepository<CryptoTopNCurrent,Long> {
 
-    @NotNull
-    public List<CryptoTopNCurrent> findAll();
 
-    @NotNull
-    public Optional<CryptoTopNCurrent> findById(@NotNull Long id);
 
-    @Query("SELECT cp FROM CryptoTopNCurrent  cp WHERE cp.symbol = :symbol")
-    public Optional<CryptoTopNCurrent> findBySymbol(@NotNull String symbol);
+
+
+
+
+
+
 
 
     @NotNull
@@ -36,8 +36,7 @@ public interface CryptoTopNCurrentRepository extends JpaRepository<CryptoTopNCur
 
     // If you want to ensure the delete operation was successful and get the number of deleted entries
     @Modifying
-    @Transactional
-    @Query("DELETE FROM CryptoTopNCurrent  c ")
+    @Query(value = "TRUNCATE TABLE crypto_topn_current", nativeQuery = true)
     int deleteAllFromTopN();
 
 

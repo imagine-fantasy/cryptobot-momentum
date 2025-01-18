@@ -83,7 +83,7 @@ ALTER TABLE IF EXISTS crypto.batch_transactions
 
 
 CREATE TABLE crypto.crypto_topn_archive (
-    id BIGINT,
+    id BIGSERIAL PRIMARY KEY,
     crypto_currency VARCHAR(255),
     symbol VARCHAR(255),
     quantity DECIMAL,
@@ -93,7 +93,7 @@ CREATE TABLE crypto.crypto_topn_archive (
     last_price DECIMAL,
     last_updated TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
+);
 
 CREATE OR REPLACE FUNCTION crypto.archive_crypto_topn_current()
 RETURNS TRIGGER AS $$

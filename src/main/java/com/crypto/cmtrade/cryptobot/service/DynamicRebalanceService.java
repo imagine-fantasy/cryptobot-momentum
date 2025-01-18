@@ -25,7 +25,7 @@ public class DynamicRebalanceService {
     private static final BigDecimal MEDIUM_THRESHOLD=new BigDecimal("0.001");
     private static final BigDecimal EXTREME_SELL_OFF=new BigDecimal("0.025");
     private static final BigDecimal STOP_LOSS_THRESHOLD=new BigDecimal("-0.02");
-    private static final BigDecimal STOP_LOSS_THRESHOLD_MIN=new BigDecimal("-0.008");
+    private static final BigDecimal STOP_LOSS_THRESHOLD_MIN=new BigDecimal("-0.002");
     private static final BigDecimal DIFFERENCE_AVGTOPN_AVGNONTOPN_PERC_THRESHOLD=new BigDecimal("4.00");
     private static final BigDecimal DIFF_AVGTOPN_NONTOPN_THRESHOLD=new BigDecimal("0.002");
     private static final Long HOUR_DIFFERENCE_TRIGGER=10l;
@@ -102,10 +102,10 @@ public class DynamicRebalanceService {
         }
 
         //AvgTopn and AvgNonTopN Percent entries block started
-        BigDecimal avgNonTopNPercent = cryptoTrackingSummary.getAvgNonTopnChange();
+      /*  BigDecimal avgNonTopNPercent = cryptoTrackingSummary.getAvgNonTopnChange();
         BigDecimal avgTopNpercent = cryptoTrackingSummary.getAvgTopnChange();
         if (avgTopNpercent!=null && avgNonTopNPercent !=null){
-            BigDecimal difference = avgTopNpercent.subtract(avgNonTopNPercent).abs();
+            BigDecimal difference = avgTopNpercent.subtract(avgNonTopNPercent);
             if(cryptoTrackingSummary.getBatchTimestamp()!=null && difference.compareTo(DIFFERENCE_AVGTOPN_AVGNONTOPN_PERC_THRESHOLD)>=0){
                 long hourDifference = ChronoUnit.HOURS.between(cryptoTrackingSummary.getBatchTimestamp(), LocalDateTime.now());
                 boolean lossTriggerThers = pnlPercentage.compareTo(STOP_LOSS_THRESHOLD_MIN) <= 0;
@@ -120,7 +120,7 @@ public class DynamicRebalanceService {
                 }
             }
 
-        }
+        }*/
         //AvgTopn and AvgNonTopN Percent entries block ended
 
 

@@ -27,8 +27,8 @@ public class CryptoApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) {
-		webSocketClient.connect();
-//		java21TyrusBinanceMarketTickerClient.connect();
+//		webSocketClient.connect();
+//		sjava21TyrusBinanceMarketTickerClient.connect();
 	}
 
 	@Bean
